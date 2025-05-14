@@ -1,0 +1,13 @@
+/* src/index.css */
+
+/* Si estás usando Tailwind, pon esto: */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* O si no usás Tailwind, podés poner estilos normales: */
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background-color: #f9f9f9;
+}
