@@ -11,7 +11,10 @@ export default defineConfig({
   preview: {
     host: '0.0.0.0',
     port: parseInt(process.env.PORT || '3000'),
-    allowedHosts: ['frontendgesex-production.up.railway.app']
+    allowedHosts: [
+      'healthcheck.railway.app',
+      'frontendgesex-production.up.railway.app'
+    ]
   },
   build: {
     outDir: 'dist',
