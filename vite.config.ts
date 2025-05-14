@@ -10,7 +10,8 @@ export default defineConfig({
   },
   preview: {
     host: '0.0.0.0',
-    port: parseInt(process.env.PORT || '3000')
+    port: parseInt(process.env.PORT || '3000'),
+    allowedHosts: ['healthcheck.railway.app']
   },
   build: {
     outDir: 'dist',
