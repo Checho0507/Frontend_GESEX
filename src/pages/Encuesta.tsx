@@ -263,7 +263,7 @@ const Encuesta = () => {
                         {dimension.nombre}
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {dimension.preguntas.map((pregunta: string, index: number) => {
+                        {dimension.preguntas.map((pregunta: string) => {
                           const preguntaId = `pregunta-${contadorPregunta++}`;
                           return (
                             <div key={preguntaId} className="border rounded-lg shadow-sm p-4 bg-white">
