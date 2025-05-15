@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "https://backendgesex-production.up.railway.app/"; // Cambia si el backend está en otro host o puerto
+const API_BASE_URL = "https://backendgesex-production.up.railway.app"; // Cambia si el backend está en otro host o puerto
 
 // Obtener todos los formularios (cuestionarios)
 export const obtenerFormularios = () => {
