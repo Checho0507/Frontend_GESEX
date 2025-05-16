@@ -109,15 +109,18 @@ const Estadisticas = () => {
             {porEdad && <PromedioPorEdad data={porEdad} testId={testId} />}
           </div>
 
-          <div className="bg-white shadow-md rounded-xl p-4">
-            <h2 className="text-xl font-semibold">Promedio por Pronombre</h2>
-            {porPronombre && <PromedioPorPronombre data={porPronombre} testId={testId} />}
-          </div>
           
         </div>
         
       )}
-
+      
+      {tipoParticipante &&(
+        <div className="bg-white shadow-md rounded-xl p-4">
+            <h2 className="text-xl font-semibold">Promedio por Pronombre</h2>
+            {porPronombre && <PromedioPorPronombre data={porPronombre} testId={testId} />}
+          </div>
+      )}
+      
       {tipoParticipante === "habitante" && porComuna && (
             <div className="bg-white shadow-md rounded-xl p-4">
               <h2 className="text-xl font-semibold">Conteo por Comuna</h2>
