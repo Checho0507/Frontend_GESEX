@@ -35,7 +35,7 @@ const PromediosPorDimension = ({ testId }: Props) => {
       setLoading(true);
       try {
         const res = await fetch(
-          `https://backendgesex-production.up.railway.app//estadisticas/${testId}/dimensiones/promedios`
+          `https://backendgesex-production.up.railway.app/estadisticas/${testId}/dimensiones/promedios`
         );
         const json: PromediosDimension = await res.json();
 
