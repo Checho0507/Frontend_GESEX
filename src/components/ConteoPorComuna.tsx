@@ -15,7 +15,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 // Simula el servicio que harías (puedes reemplazarlo por Axios o fetch real)
 const obtenerConteoPorComuna = async (testId: string) => {
-  const response = await fetch(`http://127.0.0.1:8000/estadisticas/${testId}/habitantes/comuna`);
+  const response = await fetch(`https://backendgesex-production.up.railway.app/estadisticas/${testId}/habitantes/comuna`);
   if (!response.ok) throw new Error("Error al obtener conteo por comuna");
   return response.json();
 };
