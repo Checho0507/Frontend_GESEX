@@ -34,19 +34,19 @@ const MaterialCard = ({ imagen, titulo, descripcion, onVer }: MaterialCardProps)
 const Material = () => {
   const materiales = [
     {
-      imagen: "/pdf-preview.jpg",
+      imagen: "/img/url.jpg",
       titulo: 'Conceptos básicos sobre Diversidad Sexual',
       descripcion: 'Una introducción a la terminología y conceptos fundamentales',
       onVer: () => window.open("https://material1-production.up.railway.app", "_blank"),
     },
     {
-      imagen: "/video-preview.jpg",
+      imagen: "/img/youtube.jpg",
       titulo: 'Video: ¿Qué es identidad de género?',
       descripcion: 'Explicación visual sobre identidad, expresión y orientación',
       onVer: () => window.open("https://www.youtube.com/watch?v=3QKqWWL-diM", "_blank"),
     },
     {
-      imagen: "/infografia-preview.jpg",
+      imagen: "/img/url.jpg",
       titulo: 'Infografía sobre Diversidad',
       descripcion: 'Resumen visual sobre los tipos de identidad y expresión',
       onVer: () => window.open("https://material2-production.up.railway.app", "_blank"),
