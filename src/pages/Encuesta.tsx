@@ -60,6 +60,28 @@ const Encuesta = () => {
       return;
     }
 
+    // Validar que todos los campos de caracterización requeridos estén completos
+    const camposRequeridos = formulario.caracterizacion_template.campos_requeridos;
+    const camposFaltantes = camposRequeridos.filter(
+      (campo: string) => !caracterizacion[campo] || caracterizacion[campo].trim() === ""
+    );
+    if (camposFaltantes.length > 0) {
+      alert("Por favor completa todos los campos de caracterización requeridos.");
+      return;
+    }
+
+    // Validar que todas las preguntas hayan sido respondidas
+    let totalPreguntas = 0;
+    formulario.dimensiones.forEach((dimension: any) => {
+      totalPreguntas += dimension.preguntas.length;
+    });
+
+    const respuestasCompletas = Object.keys(respuestas).length === totalPreguntas;
+    if (!respuestasCompletas) {
+      alert("Por favor responde todas las preguntas antes de enviar.");
+      return;
+    }
+
     let contadorPregunta = 1;
     const respuestasPorDimension = formulario.dimensiones.map((dimension: any) => {
       const respuestasDimension = dimension.preguntas.map(() => {
@@ -100,6 +122,7 @@ const Encuesta = () => {
     }
   };
 
+
   if (error) {
     return (
       <div className="bg-red-100 text-red-700 p-4 rounded">
@@ -130,11 +153,10 @@ const Encuesta = () => {
               setFormularioSeleccionado(formulario.id);
               setTipoParticipante(formulario.caracterizacion_template.tipo_participante);
             }}
-            className={`px-6 py-3 rounded-lg font-semibold text-white ${
-              formularioSeleccionado === formulario.id
+            className={`px-6 py-3 rounded-lg font-semibold text-white ${formularioSeleccionado === formulario.id
                 ? "bg-red-700 shadow-lg"
                 : "bg-red-600 hover:bg-red-700"
-            }`}
+              }`}
           >
             {formulario.caracterizacion_template.tipo_participante}
           </button>
