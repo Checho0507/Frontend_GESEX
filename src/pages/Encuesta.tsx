@@ -60,7 +60,7 @@ const Encuesta = () => {
       return;
     }
 
-    // Validar que todos los campos de caracterización requeridos estén completos
+    // Validar caracterización
     const camposRequeridos = formulario.caracterizacion_template.campos_requeridos;
     const camposFaltantes = camposRequeridos.filter(
       (campo: string) => !caracterizacion[campo] || caracterizacion[campo].trim() === ""
@@ -70,7 +70,7 @@ const Encuesta = () => {
       return;
     }
 
-    // Validar que todas las preguntas hayan sido respondidas
+    // Validar que todas las preguntas estén respondidas
     let totalPreguntas = 0;
     formulario.dimensiones.forEach((dimension: any) => {
       totalPreguntas += dimension.preguntas.length;
@@ -121,7 +121,6 @@ const Encuesta = () => {
       console.error("Detalles del error:", err);
     }
   };
-
 
   if (error) {
     return (
