@@ -703,7 +703,7 @@ const Encuesta: React.FC = () => {
                       {/* Observaciones */}
                       <div className="flex flex-col">
                         <label className="text-sm font-medium text-gray-700 mb-1">
-                          Observaciones de la planta
+                          Estado vegetativo predominante
                         </label>
                         <select
                           name={obsKey}
@@ -713,11 +713,9 @@ const Encuesta: React.FC = () => {
                           required
                         >
                           <option value="" disabled>Seleccione</option>
-                          <option value="Buena">Buena</option>
-                          <option value="Regular">Regular</option>
-                          <option value="Mala">Mala</option>
-                          <option value="Resiembra">Resiembra</option>
-                          <option value="Punto Vacío">Punto Vacío</option>
+                          <option value="Buena">Vegetativa - Desarrollo de hojas</option>
+                          <option value="Regular">Floración</option>
+                          <option value="Mala">Fructificación</option>
                         </select>
                       </div>
 
