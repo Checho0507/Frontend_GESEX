@@ -327,6 +327,10 @@ const Encuesta: React.FC = () => {
       {formularioActual && (
         <form onSubmit={handleSubmit} className="space-y-8 border rounded-lg shadow-md p-6 bg-white">
           {/* ---------- CARACTERIZACIÓN PRINCIPAL ---------- */}
+          <p className="text-lg font-semibold">
+                  El monitoreo fenológico se realiza siguiendo la escala BBCH para cítricos.
+                </p>El presente formulario tiene como finalidad registrar de manera estandarizada la información obtenida en los procesos de monitoreo del cultivo de cítricos, incluyendo plagas, enfermedades, controladores biológicos, polinizadores y arvenses. Estos registros permiten evaluar el estado fitosanitario del sistema productivo, apoyar la toma de decisiones bajo el enfoque de Manejo Integrado.
+ Nota importante: este formulario está diseñado para registrar un solo ítem por diligenciamiento. Por favor, seleccione y complete únicamente el módulo que corresponda a la observación realizada:  
           <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
               Información de Caracterización
