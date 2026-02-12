@@ -352,14 +352,14 @@ const Encuesta: React.FC = () => {
                         <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
                         <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
                         <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
-                        <option value="l5">Arvenses</option>
-                        <option value="l6">Controladores Biologicos</option>
-                        <option value="l7">Polinizadores</option>
-                        <option value="l8">Artropodos</option>
-                        <option value="l9">Enfermedades</option>
-                        <option value="l10">Arvenses</option>
-                        <option value="l11">Controladores Biologicos</option>
-                        <option value="l12">Polinizadores</option>
+                        <option value="l5">Lote 5. Naranja - Oficina -  127 Plantas</option>
+                        <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
+                        <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
+                        <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
+                        <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
+                        <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
+                        <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
+                        <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
                       </select>
                     ) : campoKey === "condiciones del día" ? (
                       <select
