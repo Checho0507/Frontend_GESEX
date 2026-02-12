@@ -391,6 +391,75 @@ const Encuesta: React.FC = () => {
             </div>
           </div>
 
+          <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+              Monitoreo Fenológico
+            </h2>
+            <div></div>
+            <p className="text-xl font-bold text-gray-800 mb-6">El monitoreo fenológico se realiza siguiendo la escala BBCH para cítricos.</p>
+            <p className="font-bold text-gray-800 mb-6">- Se debe seleccionar UNA rama terminal por cada cuadrante del árbol.</p>
+            <p className="font-bold text-gray-800 mb-6">- En esa rama se evalúan TODOS los órganos presentes (hojas, flores o frutos).</p>
+            <p className="font-bold text-gray-800 mb-6">- Se registra el estado que MÁS se repite dentro de la rama evaluada.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {formularioActual.censo.campos_requeridos.map((campo: string, index: number) => {
+                const campoKey = campo.toLowerCase();
+                return (
+                  <div key={index} className="flex flex-col">
+                    <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide">
+                      {campo.replace(/_/g, " ")}
+                    </label>
+                    {campoKey === "lote a monitorear" ? (
+                      <select
+                        name={campo}
+                        value={caracterizacion[campo] || ""}
+                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="" disabled>Seleccione una opción</option>
+                        <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
+                        <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
+                        <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
+                        <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
+                        <option value="l5">Lote 5. Naranja - Oficina -  127 Plantas</option>
+                        <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
+                        <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
+                        <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
+                        <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
+                        <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
+                        <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
+                        <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
+                      </select>
+                    ) : campoKey === "condiciones del día" ? (
+                      <select
+                        name={campo}
+                        value={caracterizacion[campo] || ""}
+                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="" disabled>Seleccione una opción</option>
+                        <option value="soleado">Soleado</option>
+                        <option value="nublado">Nublado</option>
+                        <option value="lluvia">Lluvia</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        name={campo}
+                        value={caracterizacion[campo] || ""}
+                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
+                        required
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Dimensiones y preguntas */}
           {formularioActual.dimensiones.map((dimension: Dimension, dimIndex: number) => {
             const preguntasInicioIndex =
