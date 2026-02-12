@@ -319,7 +319,7 @@ const Encuesta: React.FC = () => {
                         <option value="51-60">Entre 51 y 60</option>
                         <option value="60+">Mayor de 60</option>
                       </select>
-                    ):campoKey === "¿Qué se va a monitorear?" ? (
+                    ):campoKey === "¿qué se va a monitorear?" ? (
                       <select
                         name={campo}
                         value={caracterizacion[campo] || ""}
