@@ -319,6 +319,28 @@ const Encuesta: React.FC = () => {
                         <option value="51-60">Entre 51 y 60</option>
                         <option value="60+">Mayor de 60</option>
                       </select>
+                    ):campoKey === "lote a minitorear" ? (
+                      <select
+                        name={campo}
+                        value={caracterizacion[campo] || ""}
+                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="" disabled>Seleccione un lote</option>
+                        <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
+                        <option value="l2">Lore 2. Naranja - Guadual - 108 Plantas</option>
+                        <option value="l3">Lote 3. Naranja Pequeña - 124 Plantas</option>
+                        <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
+                        <option value="l5">Lote 5. Naranja - Oficina - 127 Plantas</option>
+                        <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
+                        <option value="l7">Lore 7. Naranja Swingle - 114 Plantas</option>
+                        <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
+                        <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
+                        <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
+                        <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
+                        <option value="l12">Lote 12. Limón Joven - 64 Plantas</option>
+                      </select>
                     ):campoKey === "¿qué se va a monitorear?" ? (
                       <select
                         name={campo}
