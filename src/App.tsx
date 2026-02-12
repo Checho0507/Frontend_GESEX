@@ -20,8 +20,8 @@ function App() {
             path="/"
             element={
               <div className="text-center mt-12">
-                <h1 className="text-3xl font-bold">Bienvenido al Observatorio de Diversidad</h1>
-                <p className="mt-4 text-lg">Selecciona una sección desde el menú superior.</p>
+                <h1 className="text-3xl font-bold">Bienvenido</h1>
+                <p className="mt-4 text-lg">Selecciona "encuesta" desde el menú superior.</p>
               </div>
             }
           />
