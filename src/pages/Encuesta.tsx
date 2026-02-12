@@ -327,6 +327,70 @@ const Encuesta: React.FC = () => {
             </div>
           </div>
 
+          <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+              Censo Poblacional
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {formularioActual.censo.campos_requeridos.map((campo: string, index: number) => {
+                const campoKey = campo.toLowerCase();
+                return (
+                  <div key={index} className="flex flex-col">
+                    <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide">
+                      {campo.replace(/_/g, " ")}
+                    </label>
+                    {campoKey === "lote a monitorear" ? (
+                      <select
+                        name={campo}
+                        value={caracterizacion[campo] || ""}
+                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="" disabled>Seleccione una opción</option>
+                        <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
+                        <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
+                        <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
+                        <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
+                        <option value="l5">Arvenses</option>
+                        <option value="l6">Controladores Biologicos</option>
+                        <option value="l7">Polinizadores</option>
+                        <option value="l8">Artropodos</option>
+                        <option value="l9">Enfermedades</option>
+                        <option value="l10">Arvenses</option>
+                        <option value="l11">Controladores Biologicos</option>
+                        <option value="l12">Polinizadores</option>
+                      </select>
+                    ) : campoKey === "condiciones del día" ? (
+                      <select
+                        name={campo}
+                        value={caracterizacion[campo] || ""}
+                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="" disabled>Seleccione una opción</option>
+                        <option value="soleado">Soleado</option>
+                        <option value="nublado">Nublado</option>
+                        <option value="lluvia">Lluvia</option>
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        name={campo}
+                        value={caracterizacion[campo] || ""}
+                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
+                        required
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Dimensiones y preguntas */}
           {formularioActual.dimensiones.map((dimension: Dimension, dimIndex: number) => {
             const preguntasInicioIndex =
