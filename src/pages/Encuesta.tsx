@@ -5,11 +5,6 @@ import { obtenerFormularios, enviarRespuestas } from "../services/Cuestionarios"
 import { obtenerFingerprint } from "../Utils/fingerprint";
 
 // Interfaces para TypeScript
-interface Comuna {
-  numero: number;
-  nombre: string;
-}
-
 interface Dimension {
   nombre: string;
   preguntas: string[];
@@ -38,21 +33,6 @@ interface DatosEnvio {
   fecha: string;
   fingerprint: string;
 }
-
-// Datos estáticos
-const comunasManizales: Comuna[] = [
-  { numero: 1, nombre: "Atardeceres" },
-  { numero: 2, nombre: "Universitaria" },
-  { numero: 3, nombre: "San José" },
-  { numero: 4, nombre: "La Fuente" },
-  { numero: 5, nombre: "Ciudadela del Norte" },
-  { numero: 6, nombre: "Ecoturística Cerro de Oro" },
-  { numero: 7, nombre: "Tesorito" },
-  { numero: 8, nombre: "Palogrande" },
-  { numero: 9, nombre: "Estación" },
-  { numero: 10, nombre: "Del Río" },
-  { numero: 11, nombre: "La Macarena" },
-];
 
 const Encuesta: React.FC = () => {
   const [formularios, setFormularios] = useState<Formulario[]>([]);
@@ -100,7 +80,6 @@ const Encuesta: React.FC = () => {
   const handleSeleccionFormulario = useCallback((formulario: Formulario) => {
     setFormularioSeleccionado(formulario.id);
     setTipoParticipante(formulario.caracterizacion_template.tipo_participante);
-
     // Reiniciar respuestas y caracterización al cambiar de formulario
     setRespuestas({});
     setCaracterizacion({});
@@ -184,7 +163,7 @@ const Encuesta: React.FC = () => {
       // Preparar datos para enviar
       const fechaActual = new Date().toISOString().split("T")[0];
       const data: DatosEnvio = {
-        test_id: formularioSeleccionado,
+        test_id: formularioSeleccionado!,
         respuestas: respuestasPorDimension,
         caracterizacion_datos: caracterizacionCompleta,
         fecha: fechaActual,
@@ -202,7 +181,6 @@ const Encuesta: React.FC = () => {
             setRespuestas({});
             setFormularioSeleccionado(null);
             setTipoParticipante(null);
-
             return '¡Respuestas enviadas correctamente!';
           },
           error: (err) => {
@@ -269,16 +247,16 @@ const Encuesta: React.FC = () => {
         <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
           Selecciona un tipo de cuestionario
         </h2>
-
         <div className="flex flex-wrap justify-center gap-4">
           {formularios.map((formulario) => (
             <button
               key={formulario.id}
               onClick={() => handleSeleccionFormulario(formulario)}
-              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${formularioSeleccionado === formulario.id
-                ? "bg-red-700 shadow-lg transform scale-105"
-                : "bg-red-600 hover:bg-red-700 hover:shadow-md"
-                }`}
+              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${
+                formularioSeleccionado === formulario.id
+                  ? "bg-red-700 shadow-lg transform scale-105"
+                  : "bg-red-600 hover:bg-red-700 hover:shadow-md"
+              }`}
             >
               {formulario.caracterizacion_template.tipo_participante}
             </button>
@@ -286,7 +264,7 @@ const Encuesta: React.FC = () => {
         </div>
       </div>
 
-      {/* Formulario seleccionado */}
+      {/* Formulario de encuesta (solo se muestra si hay uno seleccionado) */}
       {formularioActual && (
         <form onSubmit={handleSubmit} className="space-y-8 border rounded-lg shadow-md p-6 bg-white">
           {/* Caracterización */}
@@ -348,131 +326,73 @@ const Encuesta: React.FC = () => {
               })}
             </div>
           </div>
-          {/* Formulario seleccionado */}
-          {formularioActual && (
-            <form onSubmit={handleSubmit} className="space-y-8 border rounded-lg shadow-md p-6 bg-white">
-              {/* Caracterización */}
-              <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                  Información de Caracterización
-                </h2>
+
+          {/* Dimensiones y preguntas */}
+          {formularioActual.dimensiones.map((dimension: Dimension, dimIndex: number) => {
+            const preguntasInicioIndex =
+              formularioActual.dimensiones
+                .slice(0, dimIndex)
+                .reduce((sum, dim) => sum + dim.preguntas.length, 0) + 1;
+
+            return (
+              <div key={dimIndex} className="mb-10 border rounded-xl p-6 bg-gray-50 shadow-lg">
+                <h3 className="text-2xl font-semibold text-gray-800 mb-6 text-center uppercase tracking-wide">
+                  {dimension.nombre}
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {formularioActual.censo.campos_requeridos.map((campo: string, index: number) => {
-                    const campoKey = campo.toLowerCase();
+                  {dimension.preguntas.map((pregunta: string, pregIndex: number) => {
+                    const numeroPregunta = preguntasInicioIndex + pregIndex;
+                    const preguntaId = `pregunta-${numeroPregunta}`;
                     return (
-                      <div key={index} className="flex flex-col">
-                        <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide">
-                          {campo.replace(/_/g, " ")}
-                        </label>
-                        {campoKey === "¿qué se va a monitorear?" ? (
-                          <select
-                            name={campo}
-                            value={caracterizacion[campo] || ""}
-                            onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                          >
-                            <option value="" disabled>Seleccione una opción</option>
-                            <option value="poblacion">Censo Poblacional</option>
-                            <option value="fenologico">Monitore Fenológico</option>
-                            <option value="artropodos">Artropodos</option>
-                            <option value="enfermedades">Enfermedades</option>
-                            <option value="arvenses">Arvenses</option>
-                            <option value="biologicos">Controladores Biologicos</option>
-                            <option value="polinizadores">Polinizadores</option>
-                          </select>
-                        ) : campoKey === "condiciones del día" ? (
-                          <select
-                            name={campo}
-                            value={caracterizacion[campo] || ""}
-                            onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                          >
-                            <option value="" disabled>Seleccione una opción</option>
-                            <option value="soleado">Soleado</option>
-                            <option value="nublado">Nublado</option>
-                            <option value="lluvia">Lluvia</option>
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            name={campo}
-                            value={caracterizacion[campo] || ""}
-                            onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
-                            required
-                          />
-                        )}
+                      <div key={preguntaId} className="border rounded-lg shadow-sm p-4 bg-white">
+                        <p className="font-medium mb-4">
+                          {numeroPregunta}. {pregunta}
+                        </p>
+                        <div className="space-y-2">
+                          {[1, 2, 3, 4, 5].map((valor) => (
+                            <label
+                              key={valor}
+                              className="flex items-center text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-2 rounded"
+                            >
+                              <input
+                                type="radio"
+                                name={preguntaId}
+                                value={valor}
+                                className="mr-2 accent-red-700"
+                                onChange={(e) => handleRespuestaChange(preguntaId, e.target.value)}
+                                required
+                              />
+                              {[
+                                "Totalmente en desacuerdo",
+                                "En desacuerdo",
+                                "Neutral",
+                                "De acuerdo",
+                                "Totalmente de acuerdo",
+                              ][valor - 1]}
+                            </label>
+                          ))}
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               </div>
+            );
+          })}
 
-              {/* Dimensiones y preguntas */}
-              {formularioActual.dimensiones.map((dimension: Dimension, dimIndex: number) => {
-                // Contador de preguntas para cada dimensión
-                const preguntasInicioIndex =
-                  formularioActual.dimensiones
-                    .slice(0, dimIndex)
-                    .reduce((sum, dim) => sum + dim.preguntas.length, 0) + 1;
-
-                return (
-                  <div key={dimIndex} className="mb-10 border rounded-xl p-6 bg-gray-50 shadow-lg">
-                    <h3 className="text-2xl font-semibold text-gray-800 mb-6 text-center uppercase tracking-wide">
-                      {dimension.nombre}
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {dimension.preguntas.map((pregunta: string, pregIndex: number) => {
-                        const numeroPregunta = preguntasInicioIndex + pregIndex;
-                        const preguntaId = `pregunta-${numeroPregunta}`;
-                        return (
-                          <div key={preguntaId} className="border rounded-lg shadow-sm p-4 bg-white">
-                            <p className="font-medium mb-4">{numeroPregunta}. {pregunta}</p>
-                            <div className="space-y-2">
-                              {[1, 2, 3, 4, 5].map((valor) => (
-                                <label key={valor} className="flex items-center text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                                  <input
-                                    type="radio"
-                                    name={preguntaId}
-                                    value={valor}
-                                    className="mr-2 accent-red-700"
-                                    onChange={(e) => handleRespuestaChange(preguntaId, e.target.value)}
-                                    required
-                                  />
-                                  {[
-                                    "Totalmente en desacuerdo",
-                                    "En desacuerdo",
-                                    "Neutral",
-                                    "De acuerdo",
-                                    "Totalmente de acuerdo",
-                                  ][valor - 1]}
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Botón de envío */}
-              <div className="flex justify-center pt-6">
-                <button
-                  type="submit"
-                  className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
-                  Enviar Respuestas
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      );
+          {/* Botón de envío */}
+          <div className="flex justify-center pt-6">
+            <button
+              type="submit"
+              className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              Enviar Respuestas
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
 };
 
-      export default Encuesta;
+export default Encuesta;
