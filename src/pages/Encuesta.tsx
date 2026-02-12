@@ -25,11 +25,27 @@ interface Formulario {
   fenologico: Fenologico;
 }
 
+interface PlantaCenso {
+  codigo: string;
+  label: string;
+}
+
+// Estructura para enviar los datos de censo
+interface CensoDatosEnvio {
+  lote: string;
+  plantas: Array<{
+    codigo: string;
+    observacion: string;
+    altura: number;
+    diametro: number;
+  }>;
+}
+
 interface DatosEnvio {
   test_id: string;
   caracterizacion_datos: Record<string, string>;
-  censo_datos?: Record<string, string>;     // solo si aplica
-  fenologico?: Record<string, string>;       // solo si aplica
+  censo_datos?: CensoDatosEnvio;
+  fenologico?: Record<string, string>;
   fecha: string;
   fingerprint: string;
 }
@@ -40,7 +56,7 @@ const Encuesta: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState<boolean>(true);
 
-  // Estado del formulario (persistente)
+  // --- Estados persistentes ---
   const [formularioSeleccionado, setFormularioSeleccionado] = useState<string | null>(() => {
     return localStorage.getItem("encuesta_formularioId") || null;
   });
@@ -51,29 +67,50 @@ const Encuesta: React.FC = () => {
     const saved = localStorage.getItem("encuesta_caracterizacion");
     return saved ? JSON.parse(saved) : {};
   });
+  const [plantasCenso, setPlantasCenso] = useState<PlantaCenso[]>(() => {
+    const saved = localStorage.getItem("encuesta_plantasCenso");
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  // ---------- PERSISTENCIA EN LOCALSTORAGE ----------
-  useEffect(() => {
-    if (formularioSeleccionado) {
-      localStorage.setItem("encuesta_formularioId", formularioSeleccionado);
-    } else {
-      localStorage.removeItem("encuesta_formularioId");
+  // --- Determinar formulario actual ---
+  const formularioActual = formularioSeleccionado
+    ? formularios.find((f) => f.id === formularioSeleccionado)
+    : null;
+
+  // --- Detectar el nombre exacto del campo "¿Qué se va a monitorear?" ---
+  const nombreCampoMonitoreo = useMemo(() => {
+    if (!formularioActual) return null;
+    return (
+      formularioActual.caracterizacion_template.campos_requeridos.find(
+        (campo) =>
+          campo.toLowerCase().includes("qué") &&
+          campo.toLowerCase().includes("monitorear")
+      ) || null
+    );
+  }, [formularioActual]);
+
+  const valorMonitoreo = nombreCampoMonitoreo
+    ? caracterizacion[nombreCampoMonitoreo]
+    : undefined;
+
+  // --- Generar 5 plantas aleatorias (solo cuando se necesita) ---
+  const generarPlantasCenso = useCallback((): PlantaCenso[] => {
+    const pares = new Set<string>();
+    while (pares.size < 5) {
+      const surco = Math.floor(Math.random() * 20) + 1;
+      const planta = Math.floor(Math.random() * 20) + 1;
+      pares.add(`${surco}-${planta}`);
     }
-  }, [formularioSeleccionado]);
+    return Array.from(pares).map((par) => {
+      const [surco, planta] = par.split("-");
+      return {
+        codigo: par,
+        label: `Surco ${surco}, Planta ${planta}`,
+      };
+    });
+  }, []);
 
-  useEffect(() => {
-    if (tipoParticipante) {
-      localStorage.setItem("encuesta_tipoParticipante", tipoParticipante);
-    } else {
-      localStorage.removeItem("encuesta_tipoParticipante");
-    }
-  }, [tipoParticipante]);
-
-  useEffect(() => {
-    localStorage.setItem("encuesta_caracterizacion", JSON.stringify(caracterizacion));
-  }, [caracterizacion]);
-
-  // ---------- CARGAR FORMULARIOS ----------
+  // --- Efecto: cargar formularios desde API ---
   useEffect(() => {
     const cargarFormularios = async () => {
       try {
@@ -95,6 +132,39 @@ const Encuesta: React.FC = () => {
     cargarFormularios();
   }, []);
 
+  // --- Efectos de persistencia en localStorage ---
+  useEffect(() => {
+    if (formularioSeleccionado) {
+      localStorage.setItem("encuesta_formularioId", formularioSeleccionado);
+    } else {
+      localStorage.removeItem("encuesta_formularioId");
+    }
+  }, [formularioSeleccionado]);
+
+  useEffect(() => {
+    if (tipoParticipante) {
+      localStorage.setItem("encuesta_tipoParticipante", tipoParticipante);
+    } else {
+      localStorage.removeItem("encuesta_tipoParticipante");
+    }
+  }, [tipoParticipante]);
+
+  useEffect(() => {
+    localStorage.setItem("encuesta_caracterizacion", JSON.stringify(caracterizacion));
+  }, [caracterizacion]);
+
+  useEffect(() => {
+    localStorage.setItem("encuesta_plantasCenso", JSON.stringify(plantasCenso));
+  }, [plantasCenso]);
+
+  // --- Generar plantas automáticamente al seleccionar Censo ---
+  useEffect(() => {
+    if (valorMonitoreo === "poblacion" && plantasCenso.length === 0) {
+      const nuevasPlantas = generarPlantasCenso();
+      setPlantasCenso(nuevasPlantas);
+    }
+  }, [valorMonitoreo, plantasCenso.length, generarPlantasCenso]);
+
   // ---------- HANDLERS ----------
   const handleCaracterizacionChange = (campo: string, valor: string) => {
     setCaracterizacion((prev) => ({ ...prev, [campo]: valor }));
@@ -103,67 +173,63 @@ const Encuesta: React.FC = () => {
   const handleSeleccionFormulario = useCallback((formulario: Formulario) => {
     setFormularioSeleccionado(formulario.id);
     setTipoParticipante(formulario.caracterizacion_template.tipo_participante);
-    setCaracterizacion({}); // limpia datos anteriores
+    setCaracterizacion({});
+    setPlantasCenso([]); // Limpiar plantas al cambiar de formulario
   }, []);
-
-  // ---------- FORMULARIO ACTUAL ----------
-  const formularioActual = formularioSeleccionado
-    ? formularios.find((f) => f.id === formularioSeleccionado)
-    : null;
-
-  // ---------- DETECTAR EL NOMBRE EXACTO DEL CAMPO "¿QUÉ SE VA A MONITOREAR?" ----------
-  const nombreCampoMonitoreo = useMemo(() => {
-    if (!formularioActual) return null;
-    return (
-      formularioActual.caracterizacion_template.campos_requeridos.find(
-        (campo) =>
-          campo.toLowerCase().includes("qué") &&
-          campo.toLowerCase().includes("monitorear")
-      ) || null
-    );
-  }, [formularioActual]);
-
-  const valorMonitoreo = nombreCampoMonitoreo
-    ? caracterizacion[nombreCampoMonitoreo]
-    : undefined;
-
-  // ---------- GENERAR 5 CÓDIGOS ALEATORIOS (SURCO-PLANTA) ----------
-  const opcionesCodigo = useMemo(() => {
-    const pares = new Set<string>();
-    while (pares.size < 5) {
-      const surco = Math.floor(Math.random() * 20) + 1;
-      const planta = Math.floor(Math.random() * 20) + 1;
-      pares.add(`${surco}-${planta}`);
-    }
-    return Array.from(pares).map((par) => {
-      const [surco, planta] = par.split("-");
-      return {
-        value: par,
-        label: `Surco ${surco}, Planta ${planta}`,
-      };
-    });
-  }, [formularioSeleccionado]); // Se regenera al cambiar de formulario
 
   // ---------- VALIDACIÓN DE CAMPOS CONDICIONALES (CENSO / FENOLÓGICO) ----------
   const validarCamposCondicionales = useCallback(
     (formulario: Formulario): boolean => {
-      if (!nombreCampoMonitoreo) return true; // no hay campo, no validamos
+      if (!nombreCampoMonitoreo) return true;
 
       const seleccion = caracterizacion[nombreCampoMonitoreo];
 
+      // --- Validación de Censo Poblacional ---
       if (seleccion === "poblacion") {
-        const camposCenso = formulario.censo?.campos_requeridos || [];
-        const faltantes = camposCenso.filter(
-          (campo) => !caracterizacion[campo]?.trim()
-        );
-        if (faltantes.length > 0) {
-          toast.error(
-            `Complete todos los campos del Censo Poblacional: ${faltantes.join(", ")}`
-          );
+        // 1. Validar que se haya seleccionado un lote
+        if (!caracterizacion["lote_a_monitorear"]?.trim()) {
+          toast.error("Debe seleccionar un lote para el Censo Poblacional");
           return false;
         }
+
+        // 2. Validar que existan las 5 plantas
+        if (plantasCenso.length !== 5) {
+          toast.error("Error al cargar las plantas de censo");
+          return false;
+        }
+
+        // 3. Validar datos de cada planta
+        for (let i = 1; i <= 5; i++) {
+          const obsKey = `censo_planta_${i}_observacion`;
+          const alturaKey = `censo_planta_${i}_altura`;
+          const diametroKey = `censo_planta_${i}_diametro`;
+
+          if (
+            !caracterizacion[obsKey]?.trim() ||
+            !caracterizacion[alturaKey]?.trim() ||
+            !caracterizacion[diametroKey]?.trim()
+          ) {
+            toast.error(
+              `Complete todos los datos de la planta ${i} (${plantasCenso[i - 1]?.label || ""})`
+            );
+            return false;
+          }
+
+          const altura = parseFloat(caracterizacion[alturaKey]);
+          const diametro = parseFloat(caracterizacion[diametroKey]);
+          if (isNaN(altura) || altura <= 0) {
+            toast.error(`La altura de la planta ${i} debe ser un número mayor a 0`);
+            return false;
+          }
+          if (isNaN(diametro) || diametro <= 0) {
+            toast.error(`El diámetro de la planta ${i} debe ser un número mayor a 0`);
+            return false;
+          }
+        }
+        return true;
       }
 
+      // --- Validación de Monitoreo Fenológico (sin cambios) ---
       if (seleccion === "fenologico") {
         const camposFeno = formulario.fenologico?.campos_requeridos || [];
         const faltantes = camposFeno.filter(
@@ -175,11 +241,12 @@ const Encuesta: React.FC = () => {
           );
           return false;
         }
+        return true;
       }
 
-      return true;
+      return true; // otros casos no requieren validación extra
     },
-    [caracterizacion, nombreCampoMonitoreo]
+    [caracterizacion, nombreCampoMonitoreo, plantasCenso]
   );
 
   // ---------- VALIDACIÓN GENERAL DEL FORMULARIO ----------
@@ -202,7 +269,9 @@ const Encuesta: React.FC = () => {
     );
     if (camposFaltantes.length > 0) {
       toast.error(
-        `Por favor completa todos los campos de caracterización requeridos: ${camposFaltantes.join(", ")}`
+        `Por favor completa todos los campos de caracterización requeridos: ${camposFaltantes.join(
+          ", "
+        )}`
       );
       return false;
     }
@@ -231,14 +300,22 @@ const Encuesta: React.FC = () => {
       }
 
       // 2. Datos específicos según la selección
-      let censo_datos: Record<string, string> | undefined = undefined;
+      let censo_datos: CensoDatosEnvio | undefined = undefined;
       let fenologico_datos: Record<string, string> | undefined = undefined;
 
       if (valorMonitoreo === "poblacion") {
-        censo_datos = {};
-        formulario.censo.campos_requeridos.forEach((campo) => {
-          censo_datos![campo] = caracterizacion[campo] || "";
-        });
+        censo_datos = {
+          lote: caracterizacion["lote_a_monitorear"] || "",
+          plantas: plantasCenso.map((planta, idx) => {
+            const i = idx + 1;
+            return {
+              codigo: planta.codigo,
+              observacion: caracterizacion[`censo_planta_${i}_observacion`] || "",
+              altura: parseFloat(caracterizacion[`censo_planta_${i}_altura`] || "0"),
+              diametro: parseFloat(caracterizacion[`censo_planta_${i}_diametro`] || "0"),
+            };
+          }),
+        };
       }
 
       if (valorMonitoreo === "fenologico") {
@@ -270,9 +347,11 @@ const Encuesta: React.FC = () => {
           setCaracterizacion({});
           setFormularioSeleccionado(null);
           setTipoParticipante(null);
+          setPlantasCenso([]);
           localStorage.removeItem("encuesta_formularioId");
           localStorage.removeItem("encuesta_tipoParticipante");
           localStorage.removeItem("encuesta_caracterizacion");
+          localStorage.removeItem("encuesta_plantasCenso");
           return "¡Respuestas enviadas correctamente!";
         },
         error: (err) => {
@@ -448,70 +527,118 @@ const Encuesta: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                 Censo Poblacional
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {formularioActual.censo.campos_requeridos.map((campo, index) => {
-                  const campoKey = campo.toLowerCase();
-                  return (
-                    <div key={index} className="flex flex-col">
-                      <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide">
-                        {campo.replace(/_/g, " ")}
-                      </label>
-                      {campoKey === "lote a monitorear" ? (
+
+              {/* Campo LOTE (único) */}
+              <div className="mb-6 max-w-md">
+                <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide block">
+                  Lote a monitorear
+                </label>
+                <select
+                  name="lote_a_monitorear"
+                  value={caracterizacion["lote_a_monitorear"] || ""}
+                  onChange={(e) => handleCaracterizacionChange("lote_a_monitorear", e.target.value)}
+                  className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                  required
+                >
+                  <option value="" disabled>Seleccione una opción</option>
+                  <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
+                  <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
+                  <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
+                  <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
+                  <option value="l5">Lote 5. Naranja - Oficina - 127 Plantas</option>
+                  <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
+                  <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
+                  <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
+                  <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
+                  <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
+                  <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
+                  <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
+                </select>
+              </div>
+
+              {/* Plantas fijas generadas automáticamente */}
+              <h3 className="text-xl font-bold text-gray-800 mb-4 mt-8">
+                Plantas seleccionadas para monitoreo
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Las siguientes 5 plantas han sido generadas automáticamente. Complete los datos para cada una.
+              </p>
+
+              {plantasCenso.map((planta, idx) => {
+                const index = idx + 1;
+                const obsKey = `censo_planta_${index}_observacion`;
+                const alturaKey = `censo_planta_${index}_altura`;
+                const diametroKey = `censo_planta_${index}_diametro`;
+
+                return (
+                  <div
+                    key={planta.codigo}
+                    className="border rounded-lg p-4 mb-6 bg-white shadow-sm"
+                  >
+                    <h4 className="font-semibold text-lg text-gray-800 mb-3">
+                      {planta.label} (Código: {planta.codigo})
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Observaciones */}
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium text-gray-700 mb-1">
+                          Observaciones de la planta
+                        </label>
                         <select
-                          name={campo}
-                          value={caracterizacion[campo] || ""}
-                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                          name={obsKey}
+                          value={caracterizacion[obsKey] || ""}
+                          onChange={(e) => handleCaracterizacionChange(obsKey, e.target.value)}
                           className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           required
                         >
-                          <option value="" disabled>
-                            Seleccione una opción
-                          </option>
-                          <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
-                          <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
-                          <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
-                          <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
-                          <option value="l5">Lote 5. Naranja - Oficina - 127 Plantas</option>
-                          <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
-                          <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
-                          <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
-                          <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
-                          <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
-                          <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
-                          <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
+                          <option value="" disabled>Seleccione</option>
+                          <option value="Buena">Buena</option>
+                          <option value="Regular">Regular</option>
+                          <option value="Mala">Mala</option>
+                          <option value="Resiembra">Resiembra</option>
+                          <option value="Punto Vacío">Punto Vacío</option>
                         </select>
-                      ) : campoKey === "código plantas a monitorear" ? (
-                        <select
-                          name={campo}
-                          value={caracterizacion[campo] || ""}
-                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        >
-                          <option value="" disabled>
-                            Seleccione un código
-                          </option>
-                          {opcionesCodigo.map((opcion) => (
-                            <option key={opcion.value} value={opcion.value}>
-                              {opcion.label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
+                      </div>
+
+                      {/* Altura */}
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium text-gray-700 mb-1">
+                          Altura de la planta (m)
+                        </label>
                         <input
-                          type="text"
-                          name={campo}
-                          value={caracterizacion[campo] || ""}
-                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          name={alturaKey}
+                          value={caracterizacion[alturaKey] || ""}
+                          onChange={(e) => handleCaracterizacionChange(alturaKey, e.target.value)}
                           className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
+                          placeholder="Ej: 1.50"
                           required
                         />
-                      )}
+                      </div>
+
+                      {/* Diámetro */}
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium text-gray-700 mb-1">
+                          Diámetro de la copa (m)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          name={diametroKey}
+                          value={caracterizacion[diametroKey] || ""}
+                          onChange={(e) => handleCaracterizacionChange(diametroKey, e.target.value)}
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Ej: 2.00"
+                          required
+                        />
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
