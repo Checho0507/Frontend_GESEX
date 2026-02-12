@@ -311,10 +311,11 @@ const Encuesta: React.FC = () => {
             <button
               key={formulario.id}
               onClick={() => handleSeleccionFormulario(formulario)}
-              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${formularioSeleccionado === formulario.id
+              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${
+                formularioSeleccionado === formulario.id
                   ? "bg-red-700 shadow-lg transform scale-105"
                   : "bg-red-600 hover:bg-red-700 hover:shadow-md"
-                }`}
+              }`}
             >
               {formulario.caracterizacion_template.tipo_participante}
             </button>
@@ -325,9 +326,17 @@ const Encuesta: React.FC = () => {
       {/* ---------- FORMULARIO DE ENCUESTA (SOLO SI HAY UNO SELECCIONADO) ---------- */}
       {formularioActual && (
         <form onSubmit={handleSubmit} className="space-y-8 border rounded-lg shadow-md p-6 bg-white">
+          {/* ---------- DESCRIPCIÓN INICIAL ---------- */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+            <p className="text-gray-700 leading-relaxed">
+              El presente formulario tiene como finalidad registrar de manera estandarizada la información obtenida en los procesos de monitoreo del cultivo de cítricos, incluyendo plagas, enfermedades, controladores biológicos, polinizadores y arvenses. Estos registros permiten evaluar el estado fitosanitario del sistema productivo, apoyar la toma de decisiones bajo el enfoque de Manejo Integrado.
+            </p>
+            <p className="text-gray-700 leading-relaxed mt-3 font-semibold">
+              Nota importante: este formulario está diseñado para registrar un solo ítem por diligenciamiento. Por favor, seleccione y complete únicamente el módulo que corresponda a la observación realizada.
+            </p>
+          </div>
+
           {/* ---------- CARACTERIZACIÓN PRINCIPAL ---------- */}
-          El presente formulario tiene como finalidad registrar de manera estandarizada la información obtenida en los procesos de monitoreo del cultivo de cítricos, incluyendo plagas, enfermedades, controladores biológicos, polinizadores y arvenses. Estos registros permiten evaluar el estado fitosanitario del sistema productivo, apoyar la toma de decisiones bajo el enfoque de Manejo Integrado.
-          Nota importante: este formulario está diseñado para registrar un solo ítem por diligenciamiento. Por favor, seleccione y complete únicamente el módulo que corresponda a la observación realizada:
           <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
               Información de Caracterización
@@ -393,9 +402,9 @@ const Encuesta: React.FC = () => {
 
           {/* ---------- SECCIÓN CENSO POBLACIONAL (condicional) ---------- */}
           {caracterizacion["¿qué se va a monitorear?"] === "poblacion" && (
-            <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
+            <div className="bg-green-50 p-6 rounded-lg shadow-md mb-6 border-2 border-green-200">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                Censo Poblacional
+                📊 Censo Poblacional
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {formularioActual.censo.campos_requeridos.map((campo, index) => {
@@ -410,7 +419,7 @@ const Encuesta: React.FC = () => {
                           name={campo}
                           value={caracterizacion[campo] || ""}
                           onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                           required
                         >
                           <option value="" disabled>
@@ -434,7 +443,7 @@ const Encuesta: React.FC = () => {
                           name={campo}
                           value={caracterizacion[campo] || ""}
                           onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                           required
                         >
                           <option value="" disabled>
@@ -452,7 +461,7 @@ const Encuesta: React.FC = () => {
                           name={campo}
                           value={caracterizacion[campo] || ""}
                           onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
                           placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
                           required
                         />
@@ -466,11 +475,11 @@ const Encuesta: React.FC = () => {
 
           {/* ---------- SECCIÓN MONITOREO FENOLÓGICO (condicional) ---------- */}
           {caracterizacion["¿qué se va a monitorear?"] === "fenologico" && (
-            <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
+            <div className="bg-purple-50 p-6 rounded-lg shadow-md mb-6 border-2 border-purple-200">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                Monitoreo Fenológico
+                🌱 Monitoreo Fenológico
               </h2>
-              <div className="mb-4 text-gray-800 space-y-2">
+              <div className="mb-4 text-gray-800 space-y-2 bg-white p-4 rounded border-l-4 border-purple-500">
                 <p className="text-lg font-semibold">
                   El monitoreo fenológico se realiza siguiendo la escala BBCH para cítricos.
                 </p>
@@ -495,7 +504,7 @@ const Encuesta: React.FC = () => {
                           name={campo}
                           value={caracterizacion[campo] || ""}
                           onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                           required
                         >
                           <option value="" disabled>
@@ -519,7 +528,7 @@ const Encuesta: React.FC = () => {
                           name={campo}
                           value={caracterizacion[campo] || ""}
                           onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                           required
                         >
                           <option value="" disabled>
@@ -535,7 +544,7 @@ const Encuesta: React.FC = () => {
                           name={campo}
                           value={caracterizacion[campo] || ""}
                           onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
                           required
                         />
@@ -547,11 +556,66 @@ const Encuesta: React.FC = () => {
             </div>
           )}
 
+          {/* ---------- SECCIÓN DE PREGUNTAS POR DIMENSIÓN ---------- */}
+          {formularioActual.dimensiones && formularioActual.dimensiones.length > 0 && (
+            <div className="space-y-8">
+              {(() => {
+                let contadorPregunta = 1;
+                return formularioActual.dimensiones.map((dimension, dimIndex) => (
+                  <div
+                    key={dimIndex}
+                    className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500"
+                  >
+                    <h3 className="text-xl font-bold text-gray-800 mb-6 bg-blue-50 p-3 rounded">
+                      {dimension.nombre}
+                    </h3>
+                    <div className="space-y-6">
+                      {dimension.preguntas.map((pregunta, pregIndex) => {
+                        const preguntaId = `pregunta-${contadorPregunta++}`;
+                        return (
+                          <div
+                            key={pregIndex}
+                            className="bg-gray-50 p-4 rounded-lg border border-gray-200"
+                          >
+                            <p className="font-medium text-gray-800 mb-4">
+                              {pregIndex + 1}. {pregunta}
+                            </p>
+                            <div className="flex flex-wrap gap-4">
+                              {[1, 2, 3, 4, 5].map((valor) => (
+                                <label
+                                  key={valor}
+                                  className="flex items-center space-x-2 cursor-pointer hover:bg-blue-50 p-2 rounded transition"
+                                >
+                                  <input
+                                    type="radio"
+                                    name={preguntaId}
+                                    value={valor}
+                                    checked={respuestas[preguntaId] === valor.toString()}
+                                    onChange={(e) =>
+                                      handleRespuestaChange(preguntaId, e.target.value)
+                                    }
+                                    className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                                    required
+                                  />
+                                  <span className="text-gray-700 font-medium">{valor}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+
           {/* ---------- BOTÓN DE ENVÍO ---------- */}
           <div className="flex justify-center pt-6">
             <button
               type="submit"
-              className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 shadow-lg"
             >
               Enviar Respuestas
             </button>
