@@ -319,6 +319,39 @@ const Encuesta: React.FC = () => {
                         <option value="51-60">Entre 51 y 60</option>
                         <option value="60+">Mayor de 60</option>
                       </select>
+                    ):campoKey === "¿Qué se va a monitorear?" ? (
+                      <select
+                        name={campo}
+                        value={caracterizacion[campo] || ""}
+                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="" disabled>Seleccione su rango de edad</option>
+                        <option value="poblacion">Censo Poblacional</option>
+                        <option value="fenologico">Monitore Fenológico</option>
+                        <option value="artropodos">Artropodos</option>
+                        <option value="enfermedades">Enfermedades</option>
+                        <option value="arvenses">Arvenses</option>
+                        <option value="biologicos">Controladores Biologicos</option>
+                        <option value="polinizadores">Polinizadores</option>
+                      </select>
+                    ): campoKey === "Condiciones del día" ? (
+                      <select
+                        name={campo}
+                        value={caracterizacion[campo] || ""}
+                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="" disabled>Seleccione su rango de edad</option>
+                        <option value="15-20">Entre 15 y 20</option>
+                        <option value="21-30">Entre 21 y 30</option>
+                        <option value="31-40">Entre 31 y 40</option>
+                        <option value="41-50">Entre 41 y 50</option>
+                        <option value="51-60">Entre 51 y 60</option>
+                        <option value="60+">Mayor de 60</option>
+                      </select>
                     ) : campoKey === "lugar_procedencia" ? (
                       <select
                         name={campo}
