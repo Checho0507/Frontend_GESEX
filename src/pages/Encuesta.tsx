@@ -5,11 +5,6 @@ import { obtenerFormularios, enviarRespuestas } from "../services/Cuestionarios"
 import { obtenerFingerprint } from "../Utils/fingerprint";
 
 // ---------- INTERFACES ----------
-interface Dimension {
-  nombre: string;
-  preguntas: string[];
-}
-
 interface CaracterizacionTemplate {
   campos_requeridos: string[];
   tipo_participante: string;
@@ -25,21 +20,16 @@ interface Fenologico {
 
 interface Formulario {
   id: string;
-  dimensiones: Dimension[];
   caracterizacion_template: CaracterizacionTemplate;
   censo: Censo;
   fenologico: Fenologico;
 }
 
-interface RespuestasDimension {
-  dimension: string;
-  respuestas: number[];
-}
-
 interface DatosEnvio {
   test_id: string;
-  respuestas: RespuestasDimension[];
   caracterizacion_datos: Record<string, string>;
+  censo_datos?: Record<string, string>;     // solo si aplica
+  fenologico?: Record<string, string>;       // solo si aplica
   fecha: string;
   fingerprint: string;
 }
@@ -49,10 +39,39 @@ const Encuesta: React.FC = () => {
   const [formularios, setFormularios] = useState<Formulario[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState<boolean>(true);
-  const [formularioSeleccionado, setFormularioSeleccionado] = useState<string | null>(null);
-  const [tipoParticipante, setTipoParticipante] = useState<string | null>(null);
-  const [caracterizacion, setCaracterizacion] = useState<Record<string, string>>({});
-  const [respuestas, setRespuestas] = useState<Record<string, string>>({});
+
+  // Estado del formulario (persistente)
+  const [formularioSeleccionado, setFormularioSeleccionado] = useState<string | null>(() => {
+    return localStorage.getItem("encuesta_formularioId") || null;
+  });
+  const [tipoParticipante, setTipoParticipante] = useState<string | null>(() => {
+    return localStorage.getItem("encuesta_tipoParticipante") || null;
+  });
+  const [caracterizacion, setCaracterizacion] = useState<Record<string, string>>(() => {
+    const saved = localStorage.getItem("encuesta_caracterizacion");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // ---------- PERSISTENCIA EN LOCALSTORAGE ----------
+  useEffect(() => {
+    if (formularioSeleccionado) {
+      localStorage.setItem("encuesta_formularioId", formularioSeleccionado);
+    } else {
+      localStorage.removeItem("encuesta_formularioId");
+    }
+  }, [formularioSeleccionado]);
+
+  useEffect(() => {
+    if (tipoParticipante) {
+      localStorage.setItem("encuesta_tipoParticipante", tipoParticipante);
+    } else {
+      localStorage.removeItem("encuesta_tipoParticipante");
+    }
+  }, [tipoParticipante]);
+
+  useEffect(() => {
+    localStorage.setItem("encuesta_caracterizacion", JSON.stringify(caracterizacion));
+  }, [caracterizacion]);
 
   // ---------- CARGAR FORMULARIOS ----------
   useEffect(() => {
@@ -81,16 +100,32 @@ const Encuesta: React.FC = () => {
     setCaracterizacion((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  const handleRespuestaChange = (preguntaId: string, valor: string) => {
-    setRespuestas((prev) => ({ ...prev, [preguntaId]: valor }));
-  };
-
   const handleSeleccionFormulario = useCallback((formulario: Formulario) => {
     setFormularioSeleccionado(formulario.id);
     setTipoParticipante(formulario.caracterizacion_template.tipo_participante);
-    setRespuestas({});
-    setCaracterizacion({});
+    setCaracterizacion({}); // limpia datos anteriores
   }, []);
+
+  // ---------- FORMULARIO ACTUAL ----------
+  const formularioActual = formularioSeleccionado
+    ? formularios.find((f) => f.id === formularioSeleccionado)
+    : null;
+
+  // ---------- DETECTAR EL NOMBRE EXACTO DEL CAMPO "¿QUÉ SE VA A MONITOREAR?" ----------
+  const nombreCampoMonitoreo = useMemo(() => {
+    if (!formularioActual) return null;
+    return (
+      formularioActual.caracterizacion_template.campos_requeridos.find(
+        (campo) =>
+          campo.toLowerCase().includes("qué") &&
+          campo.toLowerCase().includes("monitorear")
+      ) || null
+    );
+  }, [formularioActual]);
+
+  const valorMonitoreo = nombreCampoMonitoreo
+    ? caracterizacion[nombreCampoMonitoreo]
+    : undefined;
 
   // ---------- GENERAR 5 CÓDIGOS ALEATORIOS (SURCO-PLANTA) ----------
   const opcionesCodigo = useMemo(() => {
@@ -112,33 +147,31 @@ const Encuesta: React.FC = () => {
   // ---------- VALIDACIÓN DE CAMPOS CONDICIONALES (CENSO / FENOLÓGICO) ----------
   const validarCamposCondicionales = useCallback(
     (formulario: Formulario): boolean => {
-      const monitoreoSeleccionado = caracterizacion["¿qué se va a monitorear?"];
+      if (!nombreCampoMonitoreo) return true; // no hay campo, no validamos
 
-      if (monitoreoSeleccionado === "poblacion") {
-        const camposCenso = formulario.censo.campos_requeridos;
+      const seleccion = caracterizacion[nombreCampoMonitoreo];
+
+      if (seleccion === "poblacion") {
+        const camposCenso = formulario.censo?.campos_requeridos || [];
         const faltantes = camposCenso.filter(
           (campo) => !caracterizacion[campo]?.trim()
         );
         if (faltantes.length > 0) {
           toast.error(
-            `Complete todos los campos del Censo Poblacional: ${faltantes.join(
-              ", "
-            )}`
+            `Complete todos los campos del Censo Poblacional: ${faltantes.join(", ")}`
           );
           return false;
         }
       }
 
-      if (monitoreoSeleccionado === "fenologico") {
-        const camposFeno = formulario.fenologico.campos_requeridos;
+      if (seleccion === "fenologico") {
+        const camposFeno = formulario.fenologico?.campos_requeridos || [];
         const faltantes = camposFeno.filter(
           (campo) => !caracterizacion[campo]?.trim()
         );
         if (faltantes.length > 0) {
           toast.error(
-            `Complete todos los campos del Monitoreo Fenológico: ${faltantes.join(
-              ", "
-            )}`
+            `Complete todos los campos del Monitoreo Fenológico: ${faltantes.join(", ")}`
           );
           return false;
         }
@@ -146,7 +179,7 @@ const Encuesta: React.FC = () => {
 
       return true;
     },
-    [caracterizacion]
+    [caracterizacion, nombreCampoMonitoreo]
   );
 
   // ---------- VALIDACIÓN GENERAL DEL FORMULARIO ----------
@@ -169,9 +202,7 @@ const Encuesta: React.FC = () => {
     );
     if (camposFaltantes.length > 0) {
       toast.error(
-        `Por favor completa todos los campos de caracterización requeridos: ${camposFaltantes.join(
-          ", "
-        )}`
+        `Por favor completa todos los campos de caracterización requeridos: ${camposFaltantes.join(", ")}`
       );
       return false;
     }
@@ -181,19 +212,8 @@ const Encuesta: React.FC = () => {
       return false;
     }
 
-    // Validar que todas las preguntas estén respondidas
-    let totalPreguntas = 0;
-    formulario.dimensiones.forEach((dimension) => {
-      totalPreguntas += dimension.preguntas.length;
-    });
-    const respuestasCompletas = Object.keys(respuestas).length === totalPreguntas;
-    if (!respuestasCompletas) {
-      toast.error("Por favor responde todas las preguntas antes de enviar");
-      return false;
-    }
-
     return true;
-  }, [formularioSeleccionado, formularios, caracterizacion, respuestas, validarCamposCondicionales]);
+  }, [formularioSeleccionado, formularios, caracterizacion, validarCamposCondicionales]);
 
   // ---------- ENVÍO DE RESPUESTAS ----------
   const handleSubmit = async (e: React.FormEvent) => {
@@ -204,41 +224,55 @@ const Encuesta: React.FC = () => {
       const formulario = formularios.find((f) => f.id === formularioSeleccionado);
       if (!formulario) throw new Error("Formulario no encontrado");
 
-      // Preparar respuestas por dimensión
-      let contadorPregunta = 1;
-      const respuestasPorDimension = formulario.dimensiones.map((dimension) => {
-        const respuestasDimension = dimension.preguntas.map(() => {
-          const preguntaId = `pregunta-${contadorPregunta++}`;
-          return parseInt(respuestas[preguntaId] || "0", 10);
-        });
-        return {
-          dimension: dimension.nombre,
-          respuestas: respuestasDimension,
-        };
-      });
-
+      // 1. Datos de caracterización general
       const caracterizacionCompleta = { ...caracterizacion };
       if (tipoParticipante) {
         caracterizacionCompleta["tipo_participante"] = tipoParticipante;
       }
 
+      // 2. Datos específicos según la selección
+      let censo_datos: Record<string, string> | undefined = undefined;
+      let fenologico_datos: Record<string, string> | undefined = undefined;
+
+      if (valorMonitoreo === "poblacion") {
+        censo_datos = {};
+        formulario.censo.campos_requeridos.forEach((campo) => {
+          censo_datos![campo] = caracterizacion[campo] || "";
+        });
+      }
+
+      if (valorMonitoreo === "fenologico") {
+        fenologico_datos = {};
+        formulario.fenologico.campos_requeridos.forEach((campo) => {
+          fenologico_datos![campo] = caracterizacion[campo] || "";
+        });
+      }
+
+      // 3. Fingerprint y fecha
       const fingerprint = await obtenerFingerprint();
       const fechaActual = new Date().toISOString().split("T")[0];
+
+      // 4. Construir payload
       const data: DatosEnvio = {
         test_id: formularioSeleccionado!,
-        respuestas: respuestasPorDimension,
         caracterizacion_datos: caracterizacionCompleta,
+        censo_datos,
+        fenologico: fenologico_datos,
         fecha: fechaActual,
         fingerprint,
       };
 
+      // 5. Enviar
       toast.promise(enviarRespuestas(data), {
         loading: "Enviando respuestas...",
         success: () => {
+          // Limpiar todo después del envío exitoso
           setCaracterizacion({});
-          setRespuestas({});
           setFormularioSeleccionado(null);
           setTipoParticipante(null);
+          localStorage.removeItem("encuesta_formularioId");
+          localStorage.removeItem("encuesta_tipoParticipante");
+          localStorage.removeItem("encuesta_caracterizacion");
           return "¡Respuestas enviadas correctamente!";
         },
         error: (err) => {
@@ -288,10 +322,6 @@ const Encuesta: React.FC = () => {
     );
   }
 
-  const formularioActual = formularioSeleccionado
-    ? formularios.find((f) => f.id === formularioSeleccionado)
-    : null;
-
   // ---------- JSX PRINCIPAL ----------
   return (
     <div className="max-w-6xl mx-auto space-y-12 px-4 md:px-10 py-8">
@@ -311,10 +341,11 @@ const Encuesta: React.FC = () => {
             <button
               key={formulario.id}
               onClick={() => handleSeleccionFormulario(formulario)}
-              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${formularioSeleccionado === formulario.id
+              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${
+                formularioSeleccionado === formulario.id
                   ? "bg-red-700 shadow-lg transform scale-105"
                   : "bg-red-600 hover:bg-red-700 hover:shadow-md"
-                }`}
+              }`}
             >
               {formulario.caracterizacion_template.tipo_participante}
             </button>
@@ -325,22 +356,42 @@ const Encuesta: React.FC = () => {
       {/* ---------- FORMULARIO DE ENCUESTA (SOLO SI HAY UNO SELECCIONADO) ---------- */}
       {formularioActual && (
         <form onSubmit={handleSubmit} className="space-y-8 border rounded-lg shadow-md p-6 bg-white">
+          {/* ---------- TEXTO INTRODUCTORIO ---------- */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 text-gray-800 text-sm rounded-r">
+            <p className="mb-2 font-medium">📋 Propósito del formulario</p>
+            <p>
+              El presente formulario tiene como finalidad registrar de manera estandarizada la información
+              obtenida en los procesos de monitoreo del cultivo de cítricos, incluyendo plagas, enfermedades,
+              controladores biológicos, polinizadores y arvenses. Estos registros permiten evaluar el estado
+              fitosanitario del sistema productivo, apoyar la toma de decisiones bajo el enfoque de Manejo
+              Integrado.
+            </p>
+            <p className="mt-2 font-medium text-yellow-700">
+              ⚠️ Nota importante: este formulario está diseñado para registrar un solo ítem por diligenciamiento.
+              Por favor, seleccione y complete únicamente el módulo que corresponda a la observación realizada.
+            </p>
+          </div>
+
           {/* ---------- CARACTERIZACIÓN PRINCIPAL ---------- */}
-          El presente formulario tiene como finalidad registrar de manera estandarizada la información obtenida en los procesos de monitoreo del cultivo de cítricos, incluyendo plagas, enfermedades, controladores biológicos, polinizadores y arvenses. Estos registros permiten evaluar el estado fitosanitario del sistema productivo, apoyar la toma de decisiones bajo el enfoque de Manejo Integrado.
-          Nota importante: este formulario está diseñado para registrar un solo ítem por diligenciamiento. Por favor, seleccione y complete únicamente el módulo que corresponda a la observación realizada:
           <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
               Información de Caracterización
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {formularioActual.caracterizacion_template.campos_requeridos.map((campo, index) => {
-                const campoKey = campo.toLowerCase();
+                const campoLower = campo.toLowerCase();
+                const esCampoMonitoreo =
+                  campoLower.includes("qué") && campoLower.includes("monitorear");
+                const esCondicionesDia =
+                  campoLower.includes("condiciones") && campoLower.includes("día");
+
                 return (
                   <div key={index} className="flex flex-col">
                     <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide">
                       {campo.replace(/_/g, " ")}
                     </label>
-                    {campoKey === "¿qué se va a monitorear?" ? (
+
+                    {esCampoMonitoreo ? (
                       <select
                         name={campo}
                         value={caracterizacion[campo] || ""}
@@ -359,7 +410,7 @@ const Encuesta: React.FC = () => {
                         <option value="biologicos">Controladores Biológicos</option>
                         <option value="polinizadores">Polinizadores</option>
                       </select>
-                    ) : campoKey === "condiciones del día" ? (
+                    ) : esCondicionesDia ? (
                       <select
                         name={campo}
                         value={caracterizacion[campo] || ""}
@@ -392,7 +443,7 @@ const Encuesta: React.FC = () => {
           </div>
 
           {/* ---------- SECCIÓN CENSO POBLACIONAL (condicional) ---------- */}
-          {caracterizacion["¿qué se va a monitorear?"] === "poblacion" && (
+          {valorMonitoreo === "poblacion" && (
             <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                 Censo Poblacional
@@ -465,7 +516,7 @@ const Encuesta: React.FC = () => {
           )}
 
           {/* ---------- SECCIÓN MONITOREO FENOLÓGICO (condicional) ---------- */}
-          {caracterizacion["¿qué se va a monitorear?"] === "fenologico" && (
+          {valorMonitoreo === "fenologico" && (
             <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                 Monitoreo Fenológico
@@ -474,7 +525,9 @@ const Encuesta: React.FC = () => {
                 <p className="text-lg font-semibold">
                   El monitoreo fenológico se realiza siguiendo la escala BBCH para cítricos.
                 </p>
-                <p className="font-medium">- Se debe seleccionar UNA rama terminal por cada cuadrante del árbol.</p>
+                <p className="font-medium">
+                  - Se debe seleccionar UNA rama terminal por cada cuadrante del árbol.
+                </p>
                 <p className="font-medium">
                   - En esa rama se evalúan TODOS los órganos presentes (hojas, flores o frutos).
                 </p>
