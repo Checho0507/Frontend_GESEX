@@ -420,11 +420,10 @@ const Encuesta: React.FC = () => {
             <button
               key={formulario.id}
               onClick={() => handleSeleccionFormulario(formulario)}
-              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${
-                formularioSeleccionado === formulario.id
+              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${formularioSeleccionado === formulario.id
                   ? "bg-red-700 shadow-lg transform scale-105"
                   : "bg-red-600 hover:bg-red-700 hover:shadow-md"
-              }`}
+                }`}
             >
               {formulario.caracterizacion_template.tipo_participante}
             </button>
@@ -721,6 +720,91 @@ const Encuesta: React.FC = () => {
                         />
                       )}
                     </div>
+                    {/* Plantas fijas generadas automáticamente */ }
+              <h3 className="text-xl font-bold text-gray-800 mb-4 mt-8">
+                Plantas seleccionadas para monitoreo
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Las siguientes 5 plantas han sido generadas automáticamente. Complete los datos para cada una.
+              </p>
+
+                  {
+                    plantasCenso.map((planta, idx) => {
+                      const index = idx + 1;
+                      const obsKey = `censo_planta_${index}_observacion`;
+                      const alturaKey = `censo_planta_${index}_altura`;
+                      const diametroKey = `censo_planta_${index}_diametro`;
+
+                      return (
+                        <div
+                          key={planta.codigo}
+                          className="border rounded-lg p-4 mb-6 bg-white shadow-sm"
+                        >
+                          <h4 className="font-semibold text-lg text-gray-800 mb-3">
+                            {planta.label} (Código: {planta.codigo})
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Observaciones */}
+                            <div className="flex flex-col">
+                              <label className="text-sm font-medium text-gray-700 mb-1">
+                                Observaciones de la planta
+                              </label>
+                              <select
+                                name={obsKey}
+                                value={caracterizacion[obsKey] || ""}
+                                onChange={(e) => handleCaracterizacionChange(obsKey, e.target.value)}
+                                className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                              >
+                                <option value="" disabled>Seleccione</option>
+                                <option value="Buena">Buena</option>
+                                <option value="Regular">Regular</option>
+                                <option value="Mala">Mala</option>
+                                <option value="Resiembra">Resiembra</option>
+                                <option value="Punto Vacío">Punto Vacío</option>
+                              </select>
+                            </div>
+
+                            {/* Altura */}
+                            <div className="flex flex-col">
+                              <label className="text-sm font-medium text-gray-700 mb-1">
+                                Altura de la planta (m)
+                              </label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                name={alturaKey}
+                                value={caracterizacion[alturaKey] || ""}
+                                onChange={(e) => handleCaracterizacionChange(alturaKey, e.target.value)}
+                                className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ej: 1.50"
+                                required
+                              />
+                            </div>
+
+                            {/* Diámetro */}
+                            <div className="flex flex-col">
+                              <label className="text-sm font-medium text-gray-700 mb-1">
+                                Diámetro de la copa (m)
+                              </label>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                name={diametroKey}
+                                value={caracterizacion[diametroKey] || ""}
+                                onChange={(e) => handleCaracterizacionChange(diametroKey, e.target.value)}
+                                className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ej: 2.00"
+                                required
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  }
                   );
                 })}
               </div>
