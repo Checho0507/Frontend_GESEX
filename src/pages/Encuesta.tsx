@@ -33,7 +33,7 @@ interface PlantaCenso {
 interface PlantaFenologico {
   codigo: string;
   label: string;
-  fase: "vegetativa" | "floracion" | "fructificacion"; // asignado aleatoriamente
+  fase: "vegetativa" | "floracion" | "fructificacion" | ""; // AHORA PUEDE ESTAR VACÍA
 }
 
 // Estructura para enviar los datos de censo
@@ -104,7 +104,7 @@ const Encuesta: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Plantas para Fenológico (con fase asignada)
+  // Plantas para Fenológico (con fase vacía inicialmente)
   const [plantasFenologico, setPlantasFenologico] = useState<PlantaFenologico[]>(() => {
     const saved = localStorage.getItem("encuesta_plantasFenologico");
     return saved ? JSON.parse(saved) : [];
@@ -148,13 +148,12 @@ const Encuesta: React.FC = () => {
     });
   }, []);
 
-  // --- Generar plantas para fenológico con fase aleatoria ---
+  // --- Generar plantas para fenológico SIN fase asignada (vacía) ---
   const generarPlantasFenologico = useCallback((): PlantaFenologico[] => {
     const bases = generarPlantas(5);
-    const fases: PlantaFenologico["fase"][] = ["vegetativa", "floracion", "fructificacion"];
     return bases.map((base) => ({
       ...base,
-      fase: fases[Math.floor(Math.random() * fases.length)],
+      fase: "", // fase vacía por defecto
     }));
   }, [generarPlantas]);
 
@@ -217,7 +216,7 @@ const Encuesta: React.FC = () => {
     }
   }, [valorMonitoreo, plantasCenso.length, generarPlantas]);
 
-  // --- Generar plantas automáticamente al seleccionar Fenológico ---
+  // --- Generar plantas automáticamente al seleccionar Fenológico (sin fase) ---
   useEffect(() => {
     if (valorMonitoreo === "fenologico" && plantasFenologico.length === 0) {
       const nuevas = generarPlantasFenologico();
@@ -236,6 +235,32 @@ const Encuesta: React.FC = () => {
     setCaracterizacion({});
     setPlantasCenso([]);
     setPlantasFenologico([]);
+  }, []);
+
+  /**
+   * Maneja el cambio de fase en una planta fenológica.
+   * Actualiza el estado `plantasFenologico` y limpia los datos de caracterización
+   * correspondientes a esa planta (para evitar residuos al cambiar de fase).
+   */
+  const handleFaseChange = useCallback((indice: number, nuevaFase: PlantaFenologico["fase"]) => {
+    // 1. Actualizar fase de la planta
+    setPlantasFenologico((prev) =>
+      prev.map((planta, idx) =>
+        idx === indice ? { ...planta, fase: nuevaFase } : planta
+      )
+    );
+
+    // 2. Limpiar todos los campos de caracterización relacionados con esta planta
+    setCaracterizacion((prevCaract) => {
+      const nuevasCaract = { ...prevCaract };
+      const prefijo = `fenologico_planta_${indice + 1}_`;
+      Object.keys(nuevasCaract).forEach((key) => {
+        if (key.startsWith(prefijo)) {
+          delete nuevasCaract[key];
+        }
+      });
+      return nuevasCaract;
+    });
   }, []);
 
   // ---------- VALIDACIÓN DE CAMPOS CONDICIONALES ----------
@@ -296,14 +321,20 @@ const Encuesta: React.FC = () => {
           return false;
         }
 
+        // Validar que cada planta tenga una fase seleccionada
+        for (let i = 0; i < plantasFenologico.length; i++) {
+          if (!plantasFenologico[i].fase) {
+            toast.error(`Seleccione la fase fenológica de la planta ${i + 1}`);
+            return false;
+          }
+        }
+
         // Validar datos específicos según la fase de cada planta
         for (let i = 1; i <= 5; i++) {
           const planta = plantasFenologico[i - 1];
           if (!planta) continue;
 
           const fase = planta.fase;
-
-          // Validar campos comunes? No hay comunes, todos son específicos por fase.
 
           if (fase === "vegetativa") {
             const hojasKey = `fenologico_planta_${i}_total_hojas`;
@@ -855,17 +886,16 @@ const Encuesta: React.FC = () => {
               {/* Instrucciones generales */}
               <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
                 <p className="text-sm text-gray-700">
-                  <span className="font-bold">Metodología:</span> Para cada planta se ha asignado aleatoriamente una fase fenológica.
-                  Complete los campos correspondientes a la fase indicada.
+                  <span className="font-bold">Metodología:</span> Para cada planta seleccione la fase fenológica
+                  que está observando. Complete los campos correspondientes a la fase elegida.
                 </p>
               </div>
 
-              {/* Plantas generadas */}
               <h3 className="text-xl font-bold text-gray-800 mb-4 mt-8">
                 Plantas seleccionadas para monitoreo fenológico
               </h3>
               <p className="text-sm text-gray-600 mb-6">
-                Las siguientes 5 plantas han sido generadas automáticamente con una fase fenológica asignada.
+                Las siguientes 5 plantas han sido generadas automáticamente. Defina la fase de cada una.
               </p>
 
               {plantasFenologico.map((planta, idx) => {
@@ -893,16 +923,32 @@ const Encuesta: React.FC = () => {
                     <h4 className="font-semibold text-lg text-gray-800 mb-2">
                       {planta.label} (Código: {planta.codigo})
                     </h4>
-                    <div className="mb-3">
-                      <span className="inline-block px-3 py-1 text-sm font-semibold rounded-full 
-                        ${fase === 'vegetativa' ? 'bg-green-100 text-green-800' : 
-                          fase === 'floracion' ? 'bg-pink-100 text-pink-800' : 
-                          'bg-orange-100 text-orange-800'}">
-                        Fase: {fase === 'vegetativa' ? 'Vegetativa' : fase === 'floracion' ? 'Floración' : 'Fructificación'}
-                      </span>
+
+                    {/* SELECTOR DE FASE */}
+                    <div className="mb-4 max-w-xs">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Fase fenológica
+                      </label>
+                      <select
+                        value={planta.fase}
+                        onChange={(e) =>
+                          handleFaseChange(
+                            idx,
+                            e.target.value as PlantaFenologico["fase"]
+                          )
+                        }
+                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                      >
+                        <option value="" disabled>
+                          -- Seleccione una fase --
+                        </option>
+                        <option value="vegetativa">Vegetativa</option>
+                        <option value="floracion">Floración</option>
+                        <option value="fructificacion">Fructificación</option>
+                      </select>
                     </div>
 
-                    {/* Formulario según fase */}
+                    {/* FORMULARIOS POR FASE - SOLO SI HAY UNA FASE SELECCIONADA */}
                     {fase === "vegetativa" && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                         <div className="flex flex-col">
