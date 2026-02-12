@@ -547,59 +547,6 @@ const Encuesta: React.FC = () => {
             </div>
           )}
 
-          {/* ---------- DIMENSIONES Y PREGUNTAS ---------- */}
-          {formularioActual.dimensiones.map((dimension, dimIndex) => {
-            const preguntasInicioIndex =
-              formularioActual.dimensiones
-                .slice(0, dimIndex)
-                .reduce((sum, dim) => sum + dim.preguntas.length, 0) + 1;
-
-            return (
-              <div key={dimIndex} className="mb-10 border rounded-xl p-6 bg-gray-50 shadow-lg">
-                <h3 className="text-2xl font-semibold text-gray-800 mb-6 text-center uppercase tracking-wide">
-                  {dimension.nombre}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {dimension.preguntas.map((pregunta, pregIndex) => {
-                    const numeroPregunta = preguntasInicioIndex + pregIndex;
-                    const preguntaId = `pregunta-${numeroPregunta}`;
-                    return (
-                      <div key={preguntaId} className="border rounded-lg shadow-sm p-4 bg-white">
-                        <p className="font-medium mb-4">
-                          {numeroPregunta}. {pregunta}
-                        </p>
-                        <div className="space-y-2">
-                          {[1, 2, 3, 4, 5].map((valor) => (
-                            <label
-                              key={valor}
-                              className="flex items-center text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-2 rounded"
-                            >
-                              <input
-                                type="radio"
-                                name={preguntaId}
-                                value={valor}
-                                className="mr-2 accent-red-700"
-                                onChange={(e) => handleRespuestaChange(preguntaId, e.target.value)}
-                                required
-                              />
-                              {[
-                                "Totalmente en desacuerdo",
-                                "En desacuerdo",
-                                "Neutral",
-                                "De acuerdo",
-                                "Totalmente de acuerdo",
-                              ][valor - 1]}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-
           {/* ---------- BOTÓN DE ENVÍO ---------- */}
           <div className="flex justify-center pt-6">
             <button
