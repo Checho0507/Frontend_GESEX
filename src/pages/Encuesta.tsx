@@ -420,10 +420,11 @@ const Encuesta: React.FC = () => {
             <button
               key={formulario.id}
               onClick={() => handleSeleccionFormulario(formulario)}
-              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${formularioSeleccionado === formulario.id
+              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${
+                formularioSeleccionado === formulario.id
                   ? "bg-red-700 shadow-lg transform scale-105"
                   : "bg-red-600 hover:bg-red-700 hover:shadow-md"
-                }`}
+              }`}
             >
               {formulario.caracterizacion_template.tipo_participante}
             </button>
@@ -647,80 +648,36 @@ const Encuesta: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                 Monitoreo Fenológico
               </h2>
-              <div className="mb-4 text-gray-800 space-y-2">
-                <p className="text-lg font-semibold">
-                  El monitoreo fenológico se realiza siguiendo la escala BBCH para cítricos.
-                </p>
-                <p className="font-medium">
-                  - Se debe seleccionar UNA rama terminal por cada cuadrante del árbol.
-                </p>
-                <p className="font-medium">
-                  - En esa rama se evalúan TODOS los órganos presentes (hojas, flores o frutos).
-                </p>
-                <p className="font-medium">
-                  - Se registra el estado que MÁS se repite dentro de la rama evaluada.
-                </p>
+
+              {/* Campo LOTE (único) */}
+              <div className="mb-6 max-w-md">
+                <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide block">
+                  Lote a monitorear
+                </label>
+                <select
+                  name="lote_a_monitorear"
+                  value={caracterizacion["lote_a_monitorear"] || ""}
+                  onChange={(e) => handleCaracterizacionChange("lote_a_monitorear", e.target.value)}
+                  className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                  required
+                >
+                  <option value="" disabled>Seleccione una opción</option>
+                  <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
+                  <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
+                  <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
+                  <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
+                  <option value="l5">Lote 5. Naranja - Oficina - 127 Plantas</option>
+                  <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
+                  <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
+                  <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
+                  <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
+                  <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
+                  <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
+                  <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
+                </select>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {formularioActual.fenologico.campos_requeridos.map((campo, index) => {
-                  const campoKey = campo.toLowerCase();
-                  return (
-                    <div key={index} className="flex flex-col">
-                      <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide">
-                        {campo.replace(/_/g, " ")}
-                      </label>
-                      {campoKey === "lote a monitorear" ? (
-                        <select
-                          name={campo}
-                          value={caracterizacion[campo] || ""}
-                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        >
-                          <option value="" disabled>
-                            Seleccione una opción
-                          </option>
-                          <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
-                          <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
-                          <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
-                          <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
-                          <option value="l5">Lote 5. Naranja - Oficina - 127 Plantas</option>
-                          <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
-                          <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
-                          <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
-                          <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
-                          <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
-                          <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
-                          <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
-                        </select>
-                      ) : campoKey === "condiciones del día" ? (
-                        <select
-                          name={campo}
-                          value={caracterizacion[campo] || ""}
-                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        >
-                          <option value="" disabled>
-                            Seleccione una opción
-                          </option>
-                          <option value="soleado">Soleado</option>
-                          <option value="nublado">Nublado</option>
-                          <option value="lluvia">Lluvia</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          name={campo}
-                          value={caracterizacion[campo] || ""}
-                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
-                          required
-                        />
-                      )}
-                    </div>
-                    {/* Plantas fijas generadas automáticamente */ }
+
+              {/* Plantas fijas generadas automáticamente */}
               <h3 className="text-xl font-bold text-gray-800 mb-4 mt-8">
                 Plantas seleccionadas para monitoreo
               </h3>
@@ -728,86 +685,81 @@ const Encuesta: React.FC = () => {
                 Las siguientes 5 plantas han sido generadas automáticamente. Complete los datos para cada una.
               </p>
 
-                  {
-                    plantasCenso.map((planta, idx) => {
-                      const index = idx + 1;
-                      const obsKey = `censo_planta_${index}_observacion`;
-                      const alturaKey = `censo_planta_${index}_altura`;
-                      const diametroKey = `censo_planta_${index}_diametro`;
+              {plantasCenso.map((planta, idx) => {
+                const index = idx + 1;
+                const obsKey = `censo_planta_${index}_observacion`;
+                const alturaKey = `censo_planta_${index}_altura`;
+                const diametroKey = `censo_planta_${index}_diametro`;
 
-                      return (
-                        <div
-                          key={planta.codigo}
-                          className="border rounded-lg p-4 mb-6 bg-white shadow-sm"
+                return (
+                  <div
+                    key={planta.codigo}
+                    className="border rounded-lg p-4 mb-6 bg-white shadow-sm"
+                  >
+                    <h4 className="font-semibold text-lg text-gray-800 mb-3">
+                      {planta.label} (Código: {planta.codigo})
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Observaciones */}
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium text-gray-700 mb-1">
+                          Observaciones de la planta
+                        </label>
+                        <select
+                          name={obsKey}
+                          value={caracterizacion[obsKey] || ""}
+                          onChange={(e) => handleCaracterizacionChange(obsKey, e.target.value)}
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
                         >
-                          <h4 className="font-semibold text-lg text-gray-800 mb-3">
-                            {planta.label} (Código: {planta.codigo})
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Observaciones */}
-                            <div className="flex flex-col">
-                              <label className="text-sm font-medium text-gray-700 mb-1">
-                                Observaciones de la planta
-                              </label>
-                              <select
-                                name={obsKey}
-                                value={caracterizacion[obsKey] || ""}
-                                onChange={(e) => handleCaracterizacionChange(obsKey, e.target.value)}
-                                className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                              >
-                                <option value="" disabled>Seleccione</option>
-                                <option value="Buena">Buena</option>
-                                <option value="Regular">Regular</option>
-                                <option value="Mala">Mala</option>
-                                <option value="Resiembra">Resiembra</option>
-                                <option value="Punto Vacío">Punto Vacío</option>
-                              </select>
-                            </div>
+                          <option value="" disabled>Seleccione</option>
+                          <option value="Buena">Buena</option>
+                          <option value="Regular">Regular</option>
+                          <option value="Mala">Mala</option>
+                          <option value="Resiembra">Resiembra</option>
+                          <option value="Punto Vacío">Punto Vacío</option>
+                        </select>
+                      </div>
 
-                            {/* Altura */}
-                            <div className="flex flex-col">
-                              <label className="text-sm font-medium text-gray-700 mb-1">
-                                Altura de la planta (m)
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                name={alturaKey}
-                                value={caracterizacion[alturaKey] || ""}
-                                onChange={(e) => handleCaracterizacionChange(alturaKey, e.target.value)}
-                                className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Ej: 1.50"
-                                required
-                              />
-                            </div>
+                      {/* Altura */}
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium text-gray-700 mb-1">
+                          Altura de la planta (m)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          name={alturaKey}
+                          value={caracterizacion[alturaKey] || ""}
+                          onChange={(e) => handleCaracterizacionChange(alturaKey, e.target.value)}
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Ej: 1.50"
+                          required
+                        />
+                      </div>
 
-                            {/* Diámetro */}
-                            <div className="flex flex-col">
-                              <label className="text-sm font-medium text-gray-700 mb-1">
-                                Diámetro de la copa (m)
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                name={diametroKey}
-                                value={caracterizacion[diametroKey] || ""}
-                                onChange={(e) => handleCaracterizacionChange(diametroKey, e.target.value)}
-                                className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="Ej: 2.00"
-                                required
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  }
-                  );
-                })}
-              </div>
+                      {/* Diámetro */}
+                      <div className="flex flex-col">
+                        <label className="text-sm font-medium text-gray-700 mb-1">
+                          Diámetro de la copa (m)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          name={diametroKey}
+                          value={caracterizacion[diametroKey] || ""}
+                          onChange={(e) => handleCaracterizacionChange(diametroKey, e.target.value)}
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Ej: 2.00"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
