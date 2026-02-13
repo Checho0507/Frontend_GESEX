@@ -1,119 +1,40 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { toast, Toaster } from "react-hot-toast";
+import React, { useMemo } from "react";
+import { Toaster } from "react-hot-toast";
 
-import { obtenerFormularios, enviarRespuestas } from "../services/Cuestionarios";
-import { obtenerFingerprint } from "../Utils/fingerprint";
+import { useFormularios } from "../hooks/useFormularios";
+import { useEncuestaState } from "../hooks/useEncuestaState";
+import { useValidacion } from "../hooks/useValidacion";
+import { useEnvio } from "../hooks/useEnvio";
 
-// ---------- INTERFACES ----------
-interface CaracterizacionTemplate {
-  campos_requeridos: string[];
-  tipo_participante: string;
-}
+import { SelectorFormularios } from "./SelectorFormularios";
+import { SelectorLote } from "./SelectorLote";
+import { CaracterizacionForm } from "./CaracterizacionForm";
+import { CensoSection } from "./CensoSection";
+import { FenologicoSection } from "./FenologicoSection";
+import { Loading, ErrorDisplay } from "./LoadingError";
 
-interface Censo {
-  campos_requeridos: string[];
-}
-
-interface Fenologico {
-  campos_requeridos: string[];
-}
-
-interface Formulario {
-  id: string;
-  caracterizacion_template: CaracterizacionTemplate;
-  censo: Censo;
-  fenologico: Fenologico;
-}
-
-interface PlantaBase {
-  codigo: string;
-  label: string;
-}
-
-interface PlantaFenologico extends PlantaBase {
-  fase: "vegetativa" | "floracion" | "fructificacion" | "";
-}
-
-interface CensoDatosEnvio {
-  lote: string;
-  plantas: Array<{
-    codigo: string;
-    observacion: string;
-    altura: number;
-    diametro: number;
-  }>;
-}
-
-interface FenologicoDatosEnvio {
-  lote: string;
-  plantas: Array<{
-    codigo: string;
-    fase: string;
-    totalHojas?: number;
-    brotesActivos?: number;
-    bbchVegetativo?: string;
-    totalFlores?: number;
-    botonesFlorales?: number;
-    bbchFloracion?: string;
-    totalFrutos?: number;
-    frutosCanica?: number;
-    frutosPinpon?: number;
-    frutosBolaTenis?: number;
-    frutosCuartoMaduracion?: number;
-    bbchFructificacion?: string;
-  }>;
-}
-
-interface DatosEnvio {
-  test_id: string;
-  caracterizacion_datos: Record<string, string>;
-  censo_datos?: CensoDatosEnvio;
-  fenologico_datos?: FenologicoDatosEnvio;
-  fecha: string;
-  fingerprint: string;
-}
-
-// ---------- COMPONENTE PRINCIPAL ----------
 const Encuesta: React.FC = () => {
-  const [formularios, setFormularios] = useState<Formulario[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [cargando, setCargando] = useState<boolean>(true);
+  const { formularios, error, cargando } = useFormularios();
+  const {
+    formularioSeleccionado,
+    tipoParticipante,
+    caracterizacion,
+    setCaracterizacion,
+    loteSeleccionado,
+    plantasSeleccionadas,
+    plantasFenologico,
+    resetearFormulario,
+    handleFaseChange,
+    handleLoteChange,
+    seleccionarFormulario,
+  } = useEncuestaState();
 
-  // --- Estados persistentes ---
-  const [formularioSeleccionado, setFormularioSeleccionado] = useState<string | null>(() => {
-    return localStorage.getItem("encuesta_formularioId") || null;
-  });
-  const [tipoParticipante, setTipoParticipante] = useState<string | null>(() => {
-    return localStorage.getItem("encuesta_tipoParticipante") || null;
-  });
-  const [caracterizacion, setCaracterizacion] = useState<Record<string, string>>(() => {
-    const saved = localStorage.getItem("encuesta_caracterizacion");
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  // --- NUEVO: Lote seleccionado (global) ---
-  const [loteSeleccionado, setLoteSeleccionado] = useState<string | null>(() => {
-    return localStorage.getItem("encuesta_loteSeleccionado") || null;
-  });
-
-  // --- NUEVO: Plantas base (solo código y label) ---
-  const [plantasSeleccionadas, setPlantasSeleccionadas] = useState<PlantaBase[]>(() => {
-    const saved = localStorage.getItem("encuesta_plantasSeleccionadas");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // --- Plantas para fenológico (con fase) - se mantiene igual pero ahora se genera desde plantasSeleccionadas ---
-  const [plantasFenologico, setPlantasFenologico] = useState<PlantaFenologico[]>(() => {
-    const saved = localStorage.getItem("encuesta_plantasFenologico");
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // --- Determinar formulario actual ---
+  // Formulario actual
   const formularioActual = formularioSeleccionado
     ? formularios.find((f) => f.id === formularioSeleccionado)
     : null;
 
-  // --- Detectar el nombre exacto del campo "¿Qué se va a monitorear?" ---
+  // Nombre del campo "¿Qué se va a monitorear?"
   const nombreCampoMonitoreo = useMemo(() => {
     if (!formularioActual) return null;
     return (
@@ -129,517 +50,38 @@ const Encuesta: React.FC = () => {
     ? caracterizacion[nombreCampoMonitoreo]
     : undefined;
 
-  // --- Generar 5 plantas aleatorias (solo código y label) ---
-  const generarPlantas = useCallback((cantidad: number): PlantaBase[] => {
-    const pares = new Set<string>();
-    while (pares.size < cantidad) {
-      const surco = Math.floor(Math.random() * 20) + 1;
-      const planta = Math.floor(Math.random() * 20) + 1;
-      pares.add(`${surco}-${planta}`);
-    }
-    return Array.from(pares).map((par) => {
-      const [surco, planta] = par.split("-");
-      return {
-        codigo: par,
-        label: `Surco ${surco}, Planta ${planta}`,
-      };
-    });
-  }, []);
+  // Validación
+  const { validarFormulario } = useValidacion({
+    formularioSeleccionado,
+    formularios,
+    caracterizacion,
+    nombreCampoMonitoreo,
+    loteSeleccionado,
+    plantasSeleccionadas,
+    plantasFenologico,
+  });
 
-  // --- Generar plantas para fenológico (con fase vacía) a partir de plantas base ---
-  const generarPlantasFenologicoDesdeBase = useCallback(
-    (base: PlantaBase[]): PlantaFenologico[] => {
-      return base.map((p) => ({ ...p, fase: "" }));
-    },
-    []
-  );
+  // Envío
+  const { handleSubmit } = useEnvio({
+    formularioSeleccionado,
+    formularios,
+    caracterizacion,
+    tipoParticipante,
+    loteSeleccionado,
+    plantasSeleccionadas,
+    plantasFenologico,
+    valorMonitoreo,
+    onExito: resetearFormulario,
+  });
 
-  // --- Efecto: cargar formularios desde API ---
-  useEffect(() => {
-    const cargarFormularios = async () => {
-      try {
-        setCargando(true);
-        const response = await obtenerFormularios();
-        if (!response.data || response.data.length === 0) {
-          throw new Error("No se encontraron formularios disponibles.");
-        }
-        setFormularios(response.data);
-        setError(null);
-      } catch (err: any) {
-        setError(`Error al cargar los formularios: ${err.message || "Error desconocido"}`);
-        console.error(err);
-        toast.error("Error al cargar los formularios");
-      } finally {
-        setCargando(false);
-      }
-    };
-    cargarFormularios();
-  }, []);
-
-  // --- Efectos de persistencia en localStorage ---
-  useEffect(() => {
-    if (formularioSeleccionado) {
-      localStorage.setItem("encuesta_formularioId", formularioSeleccionado);
-    } else {
-      localStorage.removeItem("encuesta_formularioId");
-    }
-  }, [formularioSeleccionado]);
-
-  useEffect(() => {
-    if (tipoParticipante) {
-      localStorage.setItem("encuesta_tipoParticipante", tipoParticipante);
-    } else {
-      localStorage.removeItem("encuesta_tipoParticipante");
-    }
-  }, [tipoParticipante]);
-
-  useEffect(() => {
-    localStorage.setItem("encuesta_caracterizacion", JSON.stringify(caracterizacion));
-  }, [caracterizacion]);
-
-  // --- Persistencia del lote ---
-  useEffect(() => {
-    if (loteSeleccionado) {
-      localStorage.setItem("encuesta_loteSeleccionado", loteSeleccionado);
-    } else {
-      localStorage.removeItem("encuesta_loteSeleccionado");
-    }
-  }, [loteSeleccionado]);
-
-  // --- Persistencia de plantas base ---
-  useEffect(() => {
-    localStorage.setItem("encuesta_plantasSeleccionadas", JSON.stringify(plantasSeleccionadas));
-  }, [plantasSeleccionadas]);
-
-  // --- Persistencia de plantas fenológico ---
-  useEffect(() => {
-    localStorage.setItem("encuesta_plantasFenologico", JSON.stringify(plantasFenologico));
-  }, [plantasFenologico]);
-
-  // --- Efecto: cuando se selecciona un lote, generar plantas (si no hay ya generadas) ---
-  useEffect(() => {
-    if (loteSeleccionado && plantasSeleccionadas.length === 0) {
-      const nuevas = generarPlantas(5);
-      setPlantasSeleccionadas(nuevas);
-      setPlantasFenologico(generarPlantasFenologicoDesdeBase(nuevas));
-    }
-  }, [loteSeleccionado, generarPlantas, generarPlantasFenologicoDesdeBase, plantasSeleccionadas.length]);
-
-  // --- Ya NO generamos plantas al cambiar valorMonitoreo (se eliminan los useEffect anteriores) ---
-
-  // ---------- HANDLERS ----------
+  // Handlers
   const handleCaracterizacionChange = (campo: string, valor: string) => {
     setCaracterizacion((prev) => ({ ...prev, [campo]: valor }));
   };
 
-  const handleSeleccionFormulario = useCallback((formulario: Formulario) => {
-    setFormularioSeleccionado(formulario.id);
-    setTipoParticipante(formulario.caracterizacion_template.tipo_participante);
-    setCaracterizacion({});
-    // Resetear lote y plantas al cambiar de formulario
-    setLoteSeleccionado(null);
-    setPlantasSeleccionadas([]);
-    setPlantasFenologico([]);
-  }, []);
-
-  const handleLoteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const lote = e.target.value;
-    setLoteSeleccionado(lote);
-    // Limpiar datos específicos de plantas anteriores (opcional, pero al cambiar lote se regenerarán)
-    setPlantasSeleccionadas([]);
-    setPlantasFenologico([]);
-    // También limpiamos datos de censo/fenológico previos para evitar inconsistencias
-    setCaracterizacion((prev) => {
-      const nuevas = { ...prev };
-      Object.keys(nuevas).forEach((key) => {
-        if (
-          key.startsWith("censo_planta_") ||
-          key.startsWith("fenologico_planta_")
-        ) {
-          delete nuevas[key];
-        }
-      });
-      return nuevas;
-    });
-  };
-
-  /**
-   * Maneja el cambio de fase en una planta fenológica.
-   * Actualiza el estado `plantasFenologico` y limpia los datos de caracterización
-   * correspondientes a esa planta (para evitar residuos al cambiar de fase).
-   */
-  const handleFaseChange = useCallback((indice: number, nuevaFase: PlantaFenologico["fase"]) => {
-    setPlantasFenologico((prev) =>
-      prev.map((planta, idx) =>
-        idx === indice ? { ...planta, fase: nuevaFase } : planta
-      )
-    );
-
-    // Limpiar todos los campos de caracterización relacionados con esta planta
-    setCaracterizacion((prevCaract) => {
-      const nuevasCaract = { ...prevCaract };
-      const prefijo = `fenologico_planta_${indice + 1}_`;
-      Object.keys(nuevasCaract).forEach((key) => {
-        if (key.startsWith(prefijo)) {
-          delete nuevasCaract[key];
-        }
-      });
-      return nuevasCaract;
-    });
-  }, []);
-
-  // ---------- VALIDACIÓN DE CAMPOS CONDICIONALES ----------
-  const validarCamposCondicionales = useCallback(
-    (formulario: Formulario): boolean => {
-      if (!nombreCampoMonitoreo) return true;
-
-      const seleccion = caracterizacion[nombreCampoMonitoreo];
-
-      // --- Validación de Censo Poblacional ---
-      if (seleccion === "poblacion") {
-        // Usar loteSeleccionado en lugar de caracterizacion["lote_a_monitorear"]
-        if (!loteSeleccionado) {
-          toast.error("Debe seleccionar un lote para el Censo Poblacional");
-          return false;
-        }
-        if (plantasSeleccionadas.length !== 5) {
-          toast.error("Error al cargar las plantas de censo");
-          return false;
-        }
-        for (let i = 1; i <= 5; i++) {
-          const obsKey = `censo_planta_${i}_observacion`;
-          const alturaKey = `censo_planta_${i}_altura`;
-          const diametroKey = `censo_planta_${i}_diametro`;
-
-          if (
-            !caracterizacion[obsKey]?.trim() ||
-            !caracterizacion[alturaKey]?.trim() ||
-            !caracterizacion[diametroKey]?.trim()
-          ) {
-            toast.error(
-              `Complete todos los datos de la planta ${i} (${plantasSeleccionadas[i - 1]?.label || ""})`
-            );
-            return false;
-          }
-
-          const altura = parseFloat(caracterizacion[alturaKey]);
-          const diametro = parseFloat(caracterizacion[diametroKey]);
-          if (isNaN(altura) || altura <= 0) {
-            toast.error(`La altura de la planta ${i} debe ser un número mayor a 0`);
-            return false;
-          }
-          if (isNaN(diametro) || diametro <= 0) {
-            toast.error(`El diámetro de la planta ${i} debe ser un número mayor a 0`);
-            return false;
-          }
-        }
-        return true;
-      }
-
-      // --- Validación de Monitoreo Fenológico ---
-      if (seleccion === "fenologico") {
-        if (!loteSeleccionado) {
-          toast.error("Debe seleccionar un lote para el Monitoreo Fenológico");
-          return false;
-        }
-        if (plantasFenologico.length !== 5) {
-          toast.error("Error al cargar las plantas para fenológico");
-          return false;
-        }
-
-        // Validar que cada planta tenga una fase seleccionada
-        for (let i = 0; i < plantasFenologico.length; i++) {
-          if (!plantasFenologico[i].fase) {
-            toast.error(`Seleccione la fase fenológica de la planta ${i + 1}`);
-            return false;
-          }
-        }
-
-        // Validar datos específicos según la fase de cada planta
-        for (let i = 1; i <= 5; i++) {
-          const planta = plantasFenologico[i - 1];
-          if (!planta) continue;
-
-          const fase = planta.fase;
-
-          if (fase === "vegetativa") {
-            const hojasKey = `fenologico_planta_${i}_total_hojas`;
-            const brotesKey = `fenologico_planta_${i}_brotes_activos`;
-            const bbchKey = `fenologico_planta_${i}_bbch_vegetativo`;
-
-            if (
-              !caracterizacion[hojasKey]?.trim() ||
-              !caracterizacion[brotesKey]?.trim() ||
-              !caracterizacion[bbchKey]?.trim()
-            ) {
-              toast.error(`Complete todos los datos de la planta ${i} (Fase Vegetativa)`);
-              return false;
-            }
-
-            const hojas = parseFloat(caracterizacion[hojasKey]);
-            const brotes = parseFloat(caracterizacion[brotesKey]);
-            if (isNaN(hojas) || hojas < 0) {
-              toast.error(`El número de hojas de la planta ${i} debe ser un número válido`);
-              return false;
-            }
-            if (isNaN(brotes) || brotes < 0) {
-              toast.error(`El número de brotes de la planta ${i} debe ser un número válido`);
-              return false;
-            }
-          }
-
-          if (fase === "floracion") {
-            const totalFloresKey = `fenologico_planta_${i}_total_flores`;
-            const botonesKey = `fenologico_planta_${i}_botones_florales`;
-            const bbchKey = `fenologico_planta_${i}_bbch_floracion`;
-
-            if (
-              !caracterizacion[totalFloresKey]?.trim() ||
-              !caracterizacion[botonesKey]?.trim() ||
-              !caracterizacion[bbchKey]?.trim()
-            ) {
-              toast.error(`Complete todos los datos de la planta ${i} (Fase Floración)`);
-              return false;
-            }
-
-            const flores = parseFloat(caracterizacion[totalFloresKey]);
-            const botones = parseFloat(caracterizacion[botonesKey]);
-            if (isNaN(flores) || flores < 0) {
-              toast.error(`El total de flores de la planta ${i} debe ser un número válido`);
-              return false;
-            }
-            if (isNaN(botones) || botones < 0) {
-              toast.error(`El número de botones florales de la planta ${i} debe ser un número válido`);
-              return false;
-            }
-          }
-
-          if (fase === "fructificacion") {
-            const totalFrutosKey = `fenologico_planta_${i}_total_frutos`;
-            const canicaKey = `fenologico_planta_${i}_frutos_canica`;
-            const pinponKey = `fenologico_planta_${i}_frutos_pinpon`;
-            const bolaTenisKey = `fenologico_planta_${i}_frutos_bola_tenis`;
-            const cuartoKey = `fenologico_planta_${i}_frutos_cuarto`;
-            const bbchKey = `fenologico_planta_${i}_bbch_fructificacion`;
-
-            if (
-              !caracterizacion[totalFrutosKey]?.trim() ||
-              !caracterizacion[canicaKey]?.trim() ||
-              !caracterizacion[pinponKey]?.trim() ||
-              !caracterizacion[bolaTenisKey]?.trim() ||
-              !caracterizacion[cuartoKey]?.trim() ||
-              !caracterizacion[bbchKey]?.trim()
-            ) {
-              toast.error(`Complete todos los datos de la planta ${i} (Fase Fructificación)`);
-              return false;
-            }
-
-            const total = parseFloat(caracterizacion[totalFrutosKey]);
-            const canica = parseFloat(caracterizacion[canicaKey]);
-            const pinpon = parseFloat(caracterizacion[pinponKey]);
-            const bola = parseFloat(caracterizacion[bolaTenisKey]);
-            const cuarto = parseFloat(caracterizacion[cuartoKey]);
-            if (
-              isNaN(total) || total < 0 ||
-              isNaN(canica) || canica < 0 ||
-              isNaN(pinpon) || pinpon < 0 ||
-              isNaN(bola) || bola < 0 ||
-              isNaN(cuarto) || cuarto < 0
-            ) {
-              toast.error(`Los valores numéricos de la planta ${i} deben ser válidos`);
-              return false;
-            }
-          }
-        }
-        return true;
-      }
-
-      return true;
-    },
-    [caracterizacion, nombreCampoMonitoreo, plantasSeleccionadas, plantasFenologico, loteSeleccionado]
-  );
-
-  // ---------- VALIDACIÓN GENERAL DEL FORMULARIO ----------
-  const validarFormulario = useCallback((): boolean => {
-    if (!formularioSeleccionado) {
-      toast.error("Por favor selecciona un formulario");
-      return false;
-    }
-
-    const formulario = formularios.find((f) => f.id === formularioSeleccionado);
-    if (!formulario) {
-      toast.error("Formulario no encontrado");
-      return false;
-    }
-
-    // Validar campos de caracterización principal (EXCLUYENDO lote_a_monitorear)
-    const camposRequeridos = formulario.caracterizacion_template.campos_requeridos.filter(
-      (campo) => !campo.toLowerCase().includes("lote") // Filtramos el lote porque ahora se maneja aparte
-    );
-    const camposFaltantes = camposRequeridos.filter(
-      (campo) => !caracterizacion[campo] || caracterizacion[campo].trim() === ""
-    );
-    if (camposFaltantes.length > 0) {
-      toast.error(
-        `Por favor completa todos los campos de caracterización requeridos: ${camposFaltantes.join(
-          ", "
-        )}`
-      );
-      return false;
-    }
-
-    // Validar campos condicionales
-    if (!validarCamposCondicionales(formulario)) {
-      return false;
-    }
-
-    return true;
-  }, [formularioSeleccionado, formularios, caracterizacion, validarCamposCondicionales]);
-
-  // ---------- ENVÍO DE RESPUESTAS ----------
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validarFormulario()) return;
-
-    try {
-      const formulario = formularios.find((f) => f.id === formularioSeleccionado);
-      if (!formulario) throw new Error("Formulario no encontrado");
-
-      // 1. Datos de caracterización general
-      const caracterizacionCompleta = { ...caracterizacion };
-      if (tipoParticipante) {
-        caracterizacionCompleta["tipo_participante"] = tipoParticipante;
-      }
-      // Agregar el lote seleccionado a la caracterización (para compatibilidad)
-      if (loteSeleccionado) {
-        caracterizacionCompleta["lote_a_monitorear"] = loteSeleccionado;
-      }
-
-      // 2. Datos específicos según la selección
-      let censo_datos: CensoDatosEnvio | undefined = undefined;
-      let fenologico_datos: FenologicoDatosEnvio | undefined = undefined;
-
-      if (valorMonitoreo === "poblacion") {
-        censo_datos = {
-          lote: loteSeleccionado || "",
-          plantas: plantasSeleccionadas.map((planta, idx) => {
-            const i = idx + 1;
-            return {
-              codigo: planta.codigo,
-              observacion: caracterizacion[`censo_planta_${i}_observacion`] || "",
-              altura: parseFloat(caracterizacion[`censo_planta_${i}_altura`] || "0"),
-              diametro: parseFloat(caracterizacion[`censo_planta_${i}_diametro`] || "0"),
-            };
-          }),
-        };
-      }
-
-      if (valorMonitoreo === "fenologico") {
-        fenologico_datos = {
-          lote: loteSeleccionado || "",
-          plantas: plantasFenologico.map((planta, idx) => {
-            const i = idx + 1;
-            const base: any = {
-              codigo: planta.codigo,
-              fase: planta.fase,
-            };
-
-            if (planta.fase === "vegetativa") {
-              base.totalHojas = parseFloat(caracterizacion[`fenologico_planta_${i}_total_hojas`] || "0");
-              base.brotesActivos = parseFloat(caracterizacion[`fenologico_planta_${i}_brotes_activos`] || "0");
-              base.bbchVegetativo = caracterizacion[`fenologico_planta_${i}_bbch_vegetativo`] || "";
-            }
-
-            if (planta.fase === "floracion") {
-              base.totalFlores = parseFloat(caracterizacion[`fenologico_planta_${i}_total_flores`] || "0");
-              base.botonesFlorales = parseFloat(caracterizacion[`fenologico_planta_${i}_botones_florales`] || "0");
-              base.bbchFloracion = caracterizacion[`fenologico_planta_${i}_bbch_floracion`] || "";
-            }
-
-            if (planta.fase === "fructificacion") {
-              base.totalFrutos = parseFloat(caracterizacion[`fenologico_planta_${i}_total_frutos`] || "0");
-              base.frutosCanica = parseFloat(caracterizacion[`fenologico_planta_${i}_frutos_canica`] || "0");
-              base.frutosPinpon = parseFloat(caracterizacion[`fenologico_planta_${i}_frutos_pinpon`] || "0");
-              base.frutosBolaTenis = parseFloat(caracterizacion[`fenologico_planta_${i}_frutos_bola_tenis`] || "0");
-              base.frutosCuartoMaduracion = parseFloat(caracterizacion[`fenologico_planta_${i}_frutos_cuarto`] || "0");
-              base.bbchFructificacion = caracterizacion[`fenologico_planta_${i}_bbch_fructificacion`] || "";
-            }
-
-            return base;
-          }),
-        };
-      }
-
-      // 3. Fingerprint y fecha
-      const fingerprint = await obtenerFingerprint();
-      const fechaActual = new Date().toISOString().split("T")[0];
-
-      // 4. Construir payload
-      const data: DatosEnvio = {
-        test_id: formularioSeleccionado!,
-        caracterizacion_datos: caracterizacionCompleta,
-        censo_datos,
-        fenologico_datos,
-        fecha: fechaActual,
-        fingerprint,
-      };
-
-      // 5. Enviar
-      toast.promise(enviarRespuestas(data), {
-        loading: "Enviando respuestas...",
-        success: () => {
-          // Limpiar todo después del envío exitoso
-          setCaracterizacion({});
-          setFormularioSeleccionado(null);
-          setTipoParticipante(null);
-          setLoteSeleccionado(null);
-          setPlantasSeleccionadas([]);
-          setPlantasFenologico([]);
-          localStorage.removeItem("encuesta_formularioId");
-          localStorage.removeItem("encuesta_tipoParticipante");
-          localStorage.removeItem("encuesta_caracterizacion");
-          localStorage.removeItem("encuesta_loteSeleccionado");
-          localStorage.removeItem("encuesta_plantasSeleccionadas");
-          localStorage.removeItem("encuesta_plantasFenologico");
-          return "¡Respuestas enviadas correctamente!";
-        },
-        error: (err) => {
-          console.error("Error al enviar respuestas:", err);
-          return `Error al enviar respuestas: ${err.message || "Error desconocido"}`;
-        },
-      });
-    } catch (err: any) {
-      toast.error(`Error: ${err.message || "Error desconocido"}`);
-      console.error("Error al procesar el formulario:", err);
-    }
-  };
-
-  // ---------- RENDERIZADO CONDICIONAL ----------
-  if (cargando) {
-    return (
-      <div className="flex justify-center items-center min-h-[50vh]">
-        <div className="animate-pulse text-center">
-          <p className="text-lg font-medium text-gray-700">Cargando cuestionarios...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-100 text-red-700 p-6 rounded-lg shadow-md max-w-3xl mx-auto my-8">
-        <h2 className="text-xl font-bold mb-2">Error</h2>
-        <p>{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Intentar nuevamente
-        </button>
-      </div>
-    );
-  }
-
+  // Renderizado condicional
+  if (cargando) return <Loading />;
+  if (error) return <ErrorDisplay error={error} onRetry={() => window.location.reload()} />;
   if (formularios.length === 0) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -650,7 +92,6 @@ const Encuesta: React.FC = () => {
     );
   }
 
-  // ---------- JSX PRINCIPAL ----------
   return (
     <div className="max-w-6xl mx-auto space-y-12 px-4 md:px-10 py-8">
       <Toaster position="top-center" />
@@ -659,70 +100,23 @@ const Encuesta: React.FC = () => {
         Sistema de Encuestas
       </h1>
 
-      {/* ---------- SELECTOR DE FORMULARIOS ---------- */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-          Selecciona un tipo de cuestionario
-        </h2>
-        <div className="flex flex-wrap justify-center gap-4">
-          {formularios.map((formulario) => (
-            <button
-              key={formulario.id}
-              onClick={() => handleSeleccionFormulario(formulario)}
-              className={`px-6 py-3 rounded-lg font-semibold text-white transition duration-200 ${
-                formularioSeleccionado === formulario.id
-                  ? "bg-red-700 shadow-lg transform scale-105"
-                  : "bg-red-600 hover:bg-red-700 hover:shadow-md"
-              }`}
-            >
-              {formulario.caracterizacion_template.tipo_participante}
-            </button>
-          ))}
-        </div>
-      </div>
+      <SelectorFormularios
+        formularios={formularios}
+        formularioSeleccionado={formularioSeleccionado}
+        onSelect={seleccionarFormulario}
+      />
 
-      {/* ---------- SELECCIÓN DE LOTE (GLOBAL) ---------- */}
       {formularioActual && (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Seleccione el lote a monitorear
-          </h2>
-          <div className="max-w-md">
-            <select
-              value={loteSeleccionado || ""}
-              onChange={handleLoteChange}
-              className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-              required
-            >
-              <option value="" disabled>
-                -- Seleccione un lote --
-              </option>
-              <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
-              <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
-              <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
-              <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
-              <option value="l5">Lote 5. Naranja - Oficina - 127 Plantas</option>
-              <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
-              <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
-              <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
-              <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
-              <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
-              <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
-              <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
-            </select>
-            {plantasSeleccionadas.length > 0 && (
-              <p className="text-sm text-green-600 mt-2">
-                ✅ 5 plantas generadas automáticamente para este lote.
-              </p>
-            )}
-          </div>
-        </div>
+        <SelectorLote
+          loteSeleccionado={loteSeleccionado}
+          onChange={handleLoteChange}
+          plantasGeneradas={plantasSeleccionadas.length > 0}
+        />
       )}
 
-      {/* ---------- FORMULARIO DE ENCUESTA ---------- */}
       {formularioActual && loteSeleccionado && (
         <form onSubmit={handleSubmit} className="space-y-8 border rounded-lg shadow-md p-6 bg-white">
-          {/* ... TEXTO INTRODUCTORIO (sin cambios) ... */}
+          {/* Texto introductorio */}
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 text-gray-800 text-sm rounded-r">
             <p className="mb-2 font-medium">📋 Propósito del formulario</p>
             <p>
@@ -738,455 +132,29 @@ const Encuesta: React.FC = () => {
             </p>
           </div>
 
-          {/* ---------- CARACTERIZACIÓN PRINCIPAL (sin el campo lote) ---------- */}
-          <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-              Información de Caracterización
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {formularioActual.caracterizacion_template.campos_requeridos
-                .filter((campo) => !campo.toLowerCase().includes("lote")) // NO mostrar el campo de lote
-                .map((campo, index) => {
-                  const campoLower = campo.toLowerCase();
-                  const esCampoMonitoreo =
-                    campoLower.includes("qué") && campoLower.includes("monitorear");
-                  const esCondicionesDia =
-                    campoLower.includes("condiciones") && campoLower.includes("día");
+          <CaracterizacionForm
+            formulario={formularioActual}
+            caracterizacion={caracterizacion}
+            onChange={handleCaracterizacionChange}
+          />
 
-                  return (
-                    <div key={index} className="flex flex-col">
-                      <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide">
-                        {campo.replace(/_/g, " ")}
-                      </label>
-
-                      {esCampoMonitoreo ? (
-                        <select
-                          name={campo}
-                          value={caracterizacion[campo] || ""}
-                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        >
-                          <option value="" disabled>
-                            Seleccione una opción
-                          </option>
-                          <option value="poblacion">Censo Poblacional</option>
-                          <option value="fenologico">Monitoreo Fenológico</option>
-                          <option value="artropodos">Artrópodos</option>
-                          <option value="enfermedades">Enfermedades</option>
-                          <option value="arvenses">Arvenses</option>
-                          <option value="biologicos">Controladores Biológicos</option>
-                          <option value="polinizadores">Polinizadores</option>
-                        </select>
-                      ) : esCondicionesDia ? (
-                        <select
-                          name={campo}
-                          value={caracterizacion[campo] || ""}
-                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        >
-                          <option value="" disabled>
-                            Seleccione una opción
-                          </option>
-                          <option value="soleado">Soleado</option>
-                          <option value="nublado">Nublado</option>
-                          <option value="lluvia">Lluvia</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          name={campo}
-                          value={caracterizacion[campo] || ""}
-                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
-                          required
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-
-          {/* ---------- SECCIÓN CENSO POBLACIONAL (sin selector de lote) ---------- */}
           {valorMonitoreo === "poblacion" && (
-            <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                Censo Poblacional
-              </h2>
-              <h3 className="text-xl font-bold text-gray-800 mb-4 mt-8">
-                Plantas seleccionadas para monitoreo
-              </h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Las siguientes 5 plantas han sido generadas automáticamente. Complete los datos para cada una.
-              </p>
-
-              {plantasSeleccionadas.map((planta, idx) => {
-                const index = idx + 1;
-                const obsKey = `censo_planta_${index}_observacion`;
-                const alturaKey = `censo_planta_${index}_altura`;
-                const diametroKey = `censo_planta_${index}_diametro`;
-
-                return (
-                  <div key={planta.codigo} className="border rounded-lg p-4 mb-6 bg-white shadow-sm">
-                    <h4 className="font-semibold text-lg text-gray-800 mb-3">
-                      {planta.label} (Código: {planta.codigo})
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="flex flex-col">
-                        <label className="text-sm font-medium text-gray-700 mb-1">
-                          Observaciones de la planta
-                        </label>
-                        <select
-                          name={obsKey}
-                          value={caracterizacion[obsKey] || ""}
-                          onChange={(e) => handleCaracterizacionChange(obsKey, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        >
-                          <option value="" disabled>Seleccione</option>
-                          <option value="Buena">Buena</option>
-                          <option value="Regular">Regular</option>
-                          <option value="Mala">Mala</option>
-                          <option value="Resiembra">Resiembra</option>
-                          <option value="Punto Vacío">Punto Vacío</option>
-                        </select>
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-sm font-medium text-gray-700 mb-1">
-                          Altura de la planta (m)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          name={alturaKey}
-                          value={caracterizacion[alturaKey] || ""}
-                          onChange={(e) => handleCaracterizacionChange(alturaKey, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Ej: 1.50"
-                          required
-                        />
-                      </div>
-
-                      <div className="flex flex-col">
-                        <label className="text-sm font-medium text-gray-700 mb-1">
-                          Diámetro de la copa (m)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          name={diametroKey}
-                          value={caracterizacion[diametroKey] || ""}
-                          onChange={(e) => handleCaracterizacionChange(diametroKey, e.target.value)}
-                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Ej: 2.00"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <CensoSection
+              plantas={plantasSeleccionadas}
+              caracterizacion={caracterizacion}
+              onCampoChange={handleCaracterizacionChange}
+            />
           )}
 
-          {/* ---------- SECCIÓN MONITOREO FENOLÓGICO (sin selector de lote) ---------- */}
           {valorMonitoreo === "fenologico" && (
-            <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-                Monitoreo Fenológico
-              </h2>
-
-              {/* Instrucciones generales */}
-              <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
-                <p className="text-sm text-gray-700">
-                  <span className="font-bold">Metodología:</span> Para cada planta seleccione la fase fenológica
-                  que está observando. Complete los campos correspondientes a la fase elegida.
-                </p>
-              </div>
-
-              <h3 className="text-xl font-bold text-gray-800 mb-4 mt-8">
-                Plantas seleccionadas para monitoreo fenológico
-              </h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Las siguientes 5 plantas han sido generadas automáticamente. Defina la fase de cada una.
-              </p>
-
-              {plantasFenologico.map((planta, idx) => {
-                const i = idx + 1;
-                const fase = planta.fase;
-
-                const hojasKey = `fenologico_planta_${i}_total_hojas`;
-                const brotesKey = `fenologico_planta_${i}_brotes_activos`;
-                const bbchVegKey = `fenologico_planta_${i}_bbch_vegetativo`;
-                const totalFloresKey = `fenologico_planta_${i}_total_flores`;
-                const botonesKey = `fenologico_planta_${i}_botones_florales`;
-                const bbchFlorKey = `fenologico_planta_${i}_bbch_floracion`;
-                const totalFrutosKey = `fenologico_planta_${i}_total_frutos`;
-                const canicaKey = `fenologico_planta_${i}_frutos_canica`;
-                const pinponKey = `fenologico_planta_${i}_frutos_pinpon`;
-                const bolaTenisKey = `fenologico_planta_${i}_frutos_bola_tenis`;
-                const cuartoKey = `fenologico_planta_${i}_frutos_cuarto`;
-                const bbchFrucKey = `fenologico_planta_${i}_bbch_fructificacion`;
-
-                return (
-                  <div key={planta.codigo} className="border rounded-lg p-4 mb-6 bg-white shadow-sm">
-                    <h4 className="font-semibold text-lg text-gray-800 mb-2">
-                      {planta.label} (Código: {planta.codigo})
-                    </h4>
-
-                    <div className="mb-4 max-w-xs">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Fase fenológica
-                      </label>
-                      <select
-                        value={planta.fase}
-                        onChange={(e) =>
-                          handleFaseChange(
-                            idx,
-                            e.target.value as PlantaFenologico["fase"]
-                          )
-                        }
-                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                      >
-                        <option value="" disabled>
-                          -- Seleccione una fase --
-                        </option>
-                        <option value="vegetativa">Vegetativa</option>
-                        <option value="floracion">Floración</option>
-                        <option value="fructificacion">Fructificación</option>
-                      </select>
-                    </div>
-
-                    {fase === "vegetativa" && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium text-gray-700 mb-1">
-                            Número total de hojas evaluadas
-                          </label>
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            name={hojasKey}
-                            value={caracterizacion[hojasKey] || ""}
-                            onChange={(e) => handleCaracterizacionChange(hojasKey, e.target.value)}
-                            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ej: 45"
-                            required
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium text-gray-700 mb-1">
-                            Número de brotes vegetativos activos
-                          </label>
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            name={brotesKey}
-                            value={caracterizacion[brotesKey] || ""}
-                            onChange={(e) => handleCaracterizacionChange(brotesKey, e.target.value)}
-                            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ej: 8"
-                            required
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium text-gray-700 mb-1">
-                            Estado BBCH predominante
-                          </label>
-                          <select
-                            name={bbchVegKey}
-                            value={caracterizacion[bbchVegKey] || ""}
-                            onChange={(e) => handleCaracterizacionChange(bbchVegKey, e.target.value)}
-                            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                          >
-                            <option value="" disabled>Seleccione</option>
-                            <option value="10-11">10–11: Primeras hojas visibles</option>
-                            <option value="15">15: Hojas en expansión</option>
-                            <option value="19">19: Hojas alcanzan tamaño final</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
-
-                    {fase === "floracion" && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium text-gray-700 mb-1">
-                            Número total de flores observadas
-                          </label>
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            name={totalFloresKey}
-                            value={caracterizacion[totalFloresKey] || ""}
-                            onChange={(e) => handleCaracterizacionChange(totalFloresKey, e.target.value)}
-                            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ej: 30"
-                            required
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium text-gray-700 mb-1">
-                            Número de botones florales
-                          </label>
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            name={botonesKey}
-                            value={caracterizacion[botonesKey] || ""}
-                            onChange={(e) => handleCaracterizacionChange(botonesKey, e.target.value)}
-                            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ej: 12"
-                            required
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <label className="text-sm font-medium text-gray-700 mb-1">
-                            Estado BBCH predominante
-                          </label>
-                          <select
-                            name={bbchFlorKey}
-                            value={caracterizacion[bbchFlorKey] || ""}
-                            onChange={(e) => handleCaracterizacionChange(bbchFlorKey, e.target.value)}
-                            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                          >
-                            <option value="" disabled>Seleccione</option>
-                            <option value="60">60: primeras flores abiertas</option>
-                            <option value="65">65: Plena floración (≈50% abiertas)</option>
-                            <option value="67">67: Inicio caída de pétalos</option>
-                            <option value="69">69: Fin de floración</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
-
-                    {fase === "fructificacion" && (
-                      <div className="space-y-4 mt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="flex flex-col">
-                            <label className="text-sm font-medium text-gray-700 mb-1">
-                              Número total de frutos observados
-                            </label>
-                            <input
-                              type="number"
-                              step="1"
-                              min="0"
-                              name={totalFrutosKey}
-                              value={caracterizacion[totalFrutosKey] || ""}
-                              onChange={(e) => handleCaracterizacionChange(totalFrutosKey, e.target.value)}
-                              className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Ej: 50"
-                              required
-                            />
-                          </div>
-                          <div className="flex flex-col">
-                            <label className="text-sm font-medium text-gray-700 mb-1">
-                              Frutos tipo canica
-                            </label>
-                            <input
-                              type="number"
-                              step="1"
-                              min="0"
-                              name={canicaKey}
-                              value={caracterizacion[canicaKey] || ""}
-                              onChange={(e) => handleCaracterizacionChange(canicaKey, e.target.value)}
-                              className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Ej: 10"
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="flex flex-col">
-                            <label className="text-sm font-medium text-gray-700 mb-1">
-                              Frutos tipo pin-pon
-                            </label>
-                            <input
-                              type="number"
-                              step="1"
-                              min="0"
-                              name={pinponKey}
-                              value={caracterizacion[pinponKey] || ""}
-                              onChange={(e) => handleCaracterizacionChange(pinponKey, e.target.value)}
-                              className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Ej: 15"
-                              required
-                            />
-                          </div>
-                          <div className="flex flex-col">
-                            <label className="text-sm font-medium text-gray-700 mb-1">
-                              Frutos tipo bola de tenis
-                            </label>
-                            <input
-                              type="number"
-                              step="1"
-                              min="0"
-                              name={bolaTenisKey}
-                              value={caracterizacion[bolaTenisKey] || ""}
-                              onChange={(e) => handleCaracterizacionChange(bolaTenisKey, e.target.value)}
-                              className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Ej: 12"
-                              required
-                            />
-                          </div>
-                          <div className="flex flex-col">
-                            <label className="text-sm font-medium text-gray-700 mb-1">
-                              Frutos 1/4 de maduración
-                            </label>
-                            <input
-                              type="number"
-                              step="1"
-                              min="0"
-                              name={cuartoKey}
-                              value={caracterizacion[cuartoKey] || ""}
-                              onChange={(e) => handleCaracterizacionChange(cuartoKey, e.target.value)}
-                              className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Ej: 8"
-                              required
-                            />
-                          </div>
-                        </div>
-                        <div className="flex flex-col md:flex-row md:items-center gap-4 mt-2">
-                          <div className="flex flex-col md:w-1/3">
-                            <label className="text-sm font-medium text-gray-700 mb-1">
-                              Estado BBCH predominante
-                            </label>
-                            <select
-                              name={bbchFrucKey}
-                              value={caracterizacion[bbchFrucKey] || ""}
-                              onChange={(e) => handleCaracterizacionChange(bbchFrucKey, e.target.value)}
-                              className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              required
-                            >
-                              <option value="" disabled>Seleccione</option>
-                              <option value="71">71: Cuajado inicial</option>
-                              <option value="72">72: Fruto verde con sépalos</option>
-                              <option value="74">74: Crecimiento del fruto</option>
-                              <option value="79">79: ≈90% Tamaño final</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <FenologicoSection
+              plantas={plantasFenologico}
+              caracterizacion={caracterizacion}
+              onCampoChange={handleCaracterizacionChange}
+              onFaseChange={handleFaseChange}
+            />
           )}
 
-          {/* ---------- BOTÓN DE ENVÍO ---------- */}
           <div className="flex justify-center pt-6">
             <button
               type="submit"
