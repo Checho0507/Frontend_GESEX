@@ -25,18 +25,15 @@ interface Formulario {
   fenologico: Fenologico;
 }
 
-interface PlantaCenso {
+interface PlantaBase {
   codigo: string;
   label: string;
 }
 
-interface PlantaFenologico {
-  codigo: string;
-  label: string;
-  fase: "vegetativa" | "floracion" | "fructificacion" | ""; // AHORA PUEDE ESTAR VACÍA
+interface PlantaFenologico extends PlantaBase {
+  fase: "vegetativa" | "floracion" | "fructificacion" | "";
 }
 
-// Estructura para enviar los datos de censo
 interface CensoDatosEnvio {
   lote: string;
   plantas: Array<{
@@ -47,21 +44,17 @@ interface CensoDatosEnvio {
   }>;
 }
 
-// Estructura para enviar los datos de fenológico
 interface FenologicoDatosEnvio {
   lote: string;
   plantas: Array<{
     codigo: string;
     fase: string;
-    // Vegetativa
     totalHojas?: number;
     brotesActivos?: number;
     bbchVegetativo?: string;
-    // Floración
     totalFlores?: number;
     botonesFlorales?: number;
     bbchFloracion?: string;
-    // Fructificación
     totalFrutos?: number;
     frutosCanica?: number;
     frutosPinpon?: number;
@@ -98,13 +91,18 @@ const Encuesta: React.FC = () => {
     return saved ? JSON.parse(saved) : {};
   });
 
-  // Plantas para Censo
-  const [plantasCenso, setPlantasCenso] = useState<PlantaCenso[]>(() => {
-    const saved = localStorage.getItem("encuesta_plantasCenso");
+  // --- NUEVO: Lote seleccionado (global) ---
+  const [loteSeleccionado, setLoteSeleccionado] = useState<string | null>(() => {
+    return localStorage.getItem("encuesta_loteSeleccionado") || null;
+  });
+
+  // --- NUEVO: Plantas base (solo código y label) ---
+  const [plantasSeleccionadas, setPlantasSeleccionadas] = useState<PlantaBase[]>(() => {
+    const saved = localStorage.getItem("encuesta_plantasSeleccionadas");
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Plantas para Fenológico (con fase vacía inicialmente)
+  // --- Plantas para fenológico (con fase) - se mantiene igual pero ahora se genera desde plantasSeleccionadas ---
   const [plantasFenologico, setPlantasFenologico] = useState<PlantaFenologico[]>(() => {
     const saved = localStorage.getItem("encuesta_plantasFenologico");
     return saved ? JSON.parse(saved) : [];
@@ -131,8 +129,8 @@ const Encuesta: React.FC = () => {
     ? caracterizacion[nombreCampoMonitoreo]
     : undefined;
 
-  // --- Generar 5 plantas aleatorias ---
-  const generarPlantas = useCallback((cantidad: number): { codigo: string; label: string }[] => {
+  // --- Generar 5 plantas aleatorias (solo código y label) ---
+  const generarPlantas = useCallback((cantidad: number): PlantaBase[] => {
     const pares = new Set<string>();
     while (pares.size < cantidad) {
       const surco = Math.floor(Math.random() * 20) + 1;
@@ -148,14 +146,13 @@ const Encuesta: React.FC = () => {
     });
   }, []);
 
-  // --- Generar plantas para fenológico SIN fase asignada (vacía) ---
-  const generarPlantasFenologico = useCallback((): PlantaFenologico[] => {
-    const bases = generarPlantas(5);
-    return bases.map((base) => ({
-      ...base,
-      fase: "", // fase vacía por defecto
-    }));
-  }, [generarPlantas]);
+  // --- Generar plantas para fenológico (con fase vacía) a partir de plantas base ---
+  const generarPlantasFenologicoDesdeBase = useCallback(
+    (base: PlantaBase[]): PlantaFenologico[] => {
+      return base.map((p) => ({ ...p, fase: "" }));
+    },
+    []
+  );
 
   // --- Efecto: cargar formularios desde API ---
   useEffect(() => {
@@ -200,29 +197,35 @@ const Encuesta: React.FC = () => {
     localStorage.setItem("encuesta_caracterizacion", JSON.stringify(caracterizacion));
   }, [caracterizacion]);
 
+  // --- Persistencia del lote ---
   useEffect(() => {
-    localStorage.setItem("encuesta_plantasCenso", JSON.stringify(plantasCenso));
-  }, [plantasCenso]);
+    if (loteSeleccionado) {
+      localStorage.setItem("encuesta_loteSeleccionado", loteSeleccionado);
+    } else {
+      localStorage.removeItem("encuesta_loteSeleccionado");
+    }
+  }, [loteSeleccionado]);
 
+  // --- Persistencia de plantas base ---
+  useEffect(() => {
+    localStorage.setItem("encuesta_plantasSeleccionadas", JSON.stringify(plantasSeleccionadas));
+  }, [plantasSeleccionadas]);
+
+  // --- Persistencia de plantas fenológico ---
   useEffect(() => {
     localStorage.setItem("encuesta_plantasFenologico", JSON.stringify(plantasFenologico));
   }, [plantasFenologico]);
 
-  // --- Generar plantas automáticamente al seleccionar Censo ---
+  // --- Efecto: cuando se selecciona un lote, generar plantas (si no hay ya generadas) ---
   useEffect(() => {
-    if (valorMonitoreo === "poblacion" && plantasCenso.length === 0) {
+    if (loteSeleccionado && plantasSeleccionadas.length === 0) {
       const nuevas = generarPlantas(5);
-      setPlantasCenso(nuevas);
+      setPlantasSeleccionadas(nuevas);
+      setPlantasFenologico(generarPlantasFenologicoDesdeBase(nuevas));
     }
-  }, [valorMonitoreo, plantasCenso.length, generarPlantas]);
+  }, [loteSeleccionado, generarPlantas, generarPlantasFenologicoDesdeBase, plantasSeleccionadas.length]);
 
-  // --- Generar plantas automáticamente al seleccionar Fenológico (sin fase) ---
-  useEffect(() => {
-    if (valorMonitoreo === "fenologico" && plantasFenologico.length === 0) {
-      const nuevas = generarPlantasFenologico();
-      setPlantasFenologico(nuevas);
-    }
-  }, [valorMonitoreo, plantasFenologico.length, generarPlantasFenologico]);
+  // --- Ya NO generamos plantas al cambiar valorMonitoreo (se eliminan los useEffect anteriores) ---
 
   // ---------- HANDLERS ----------
   const handleCaracterizacionChange = (campo: string, valor: string) => {
@@ -233,9 +236,32 @@ const Encuesta: React.FC = () => {
     setFormularioSeleccionado(formulario.id);
     setTipoParticipante(formulario.caracterizacion_template.tipo_participante);
     setCaracterizacion({});
-    setPlantasCenso([]);
+    // Resetear lote y plantas al cambiar de formulario
+    setLoteSeleccionado(null);
+    setPlantasSeleccionadas([]);
     setPlantasFenologico([]);
   }, []);
+
+  const handleLoteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const lote = e.target.value;
+    setLoteSeleccionado(lote);
+    // Limpiar datos específicos de plantas anteriores (opcional, pero al cambiar lote se regenerarán)
+    setPlantasSeleccionadas([]);
+    setPlantasFenologico([]);
+    // También limpiamos datos de censo/fenológico previos para evitar inconsistencias
+    setCaracterizacion((prev) => {
+      const nuevas = { ...prev };
+      Object.keys(nuevas).forEach((key) => {
+        if (
+          key.startsWith("censo_planta_") ||
+          key.startsWith("fenologico_planta_")
+        ) {
+          delete nuevas[key];
+        }
+      });
+      return nuevas;
+    });
+  };
 
   /**
    * Maneja el cambio de fase en una planta fenológica.
@@ -243,14 +269,13 @@ const Encuesta: React.FC = () => {
    * correspondientes a esa planta (para evitar residuos al cambiar de fase).
    */
   const handleFaseChange = useCallback((indice: number, nuevaFase: PlantaFenologico["fase"]) => {
-    // 1. Actualizar fase de la planta
     setPlantasFenologico((prev) =>
       prev.map((planta, idx) =>
         idx === indice ? { ...planta, fase: nuevaFase } : planta
       )
     );
 
-    // 2. Limpiar todos los campos de caracterización relacionados con esta planta
+    // Limpiar todos los campos de caracterización relacionados con esta planta
     setCaracterizacion((prevCaract) => {
       const nuevasCaract = { ...prevCaract };
       const prefijo = `fenologico_planta_${indice + 1}_`;
@@ -272,11 +297,12 @@ const Encuesta: React.FC = () => {
 
       // --- Validación de Censo Poblacional ---
       if (seleccion === "poblacion") {
-        if (!caracterizacion["lote_a_monitorear"]?.trim()) {
+        // Usar loteSeleccionado en lugar de caracterizacion["lote_a_monitorear"]
+        if (!loteSeleccionado) {
           toast.error("Debe seleccionar un lote para el Censo Poblacional");
           return false;
         }
-        if (plantasCenso.length !== 5) {
+        if (plantasSeleccionadas.length !== 5) {
           toast.error("Error al cargar las plantas de censo");
           return false;
         }
@@ -291,7 +317,7 @@ const Encuesta: React.FC = () => {
             !caracterizacion[diametroKey]?.trim()
           ) {
             toast.error(
-              `Complete todos los datos de la planta ${i} (${plantasCenso[i - 1]?.label || ""})`
+              `Complete todos los datos de la planta ${i} (${plantasSeleccionadas[i - 1]?.label || ""})`
             );
             return false;
           }
@@ -312,7 +338,7 @@ const Encuesta: React.FC = () => {
 
       // --- Validación de Monitoreo Fenológico ---
       if (seleccion === "fenologico") {
-        if (!caracterizacion["lote_a_monitorear"]?.trim()) {
+        if (!loteSeleccionado) {
           toast.error("Debe seleccionar un lote para el Monitoreo Fenológico");
           return false;
         }
@@ -428,9 +454,9 @@ const Encuesta: React.FC = () => {
         return true;
       }
 
-      return true; // otros casos
+      return true;
     },
-    [caracterizacion, nombreCampoMonitoreo, plantasCenso, plantasFenologico]
+    [caracterizacion, nombreCampoMonitoreo, plantasSeleccionadas, plantasFenologico, loteSeleccionado]
   );
 
   // ---------- VALIDACIÓN GENERAL DEL FORMULARIO ----------
@@ -446,8 +472,10 @@ const Encuesta: React.FC = () => {
       return false;
     }
 
-    // Validar campos de caracterización principal
-    const camposRequeridos = formulario.caracterizacion_template.campos_requeridos;
+    // Validar campos de caracterización principal (EXCLUYENDO lote_a_monitorear)
+    const camposRequeridos = formulario.caracterizacion_template.campos_requeridos.filter(
+      (campo) => !campo.toLowerCase().includes("lote") // Filtramos el lote porque ahora se maneja aparte
+    );
     const camposFaltantes = camposRequeridos.filter(
       (campo) => !caracterizacion[campo] || caracterizacion[campo].trim() === ""
     );
@@ -482,6 +510,10 @@ const Encuesta: React.FC = () => {
       if (tipoParticipante) {
         caracterizacionCompleta["tipo_participante"] = tipoParticipante;
       }
+      // Agregar el lote seleccionado a la caracterización (para compatibilidad)
+      if (loteSeleccionado) {
+        caracterizacionCompleta["lote_a_monitorear"] = loteSeleccionado;
+      }
 
       // 2. Datos específicos según la selección
       let censo_datos: CensoDatosEnvio | undefined = undefined;
@@ -489,8 +521,8 @@ const Encuesta: React.FC = () => {
 
       if (valorMonitoreo === "poblacion") {
         censo_datos = {
-          lote: caracterizacion["lote_a_monitorear"] || "",
-          plantas: plantasCenso.map((planta, idx) => {
+          lote: loteSeleccionado || "",
+          plantas: plantasSeleccionadas.map((planta, idx) => {
             const i = idx + 1;
             return {
               codigo: planta.codigo,
@@ -504,7 +536,7 @@ const Encuesta: React.FC = () => {
 
       if (valorMonitoreo === "fenologico") {
         fenologico_datos = {
-          lote: caracterizacion["lote_a_monitorear"] || "",
+          lote: loteSeleccionado || "",
           plantas: plantasFenologico.map((planta, idx) => {
             const i = idx + 1;
             const base: any = {
@@ -560,12 +592,14 @@ const Encuesta: React.FC = () => {
           setCaracterizacion({});
           setFormularioSeleccionado(null);
           setTipoParticipante(null);
-          setPlantasCenso([]);
+          setLoteSeleccionado(null);
+          setPlantasSeleccionadas([]);
           setPlantasFenologico([]);
           localStorage.removeItem("encuesta_formularioId");
           localStorage.removeItem("encuesta_tipoParticipante");
           localStorage.removeItem("encuesta_caracterizacion");
-          localStorage.removeItem("encuesta_plantasCenso");
+          localStorage.removeItem("encuesta_loteSeleccionado");
+          localStorage.removeItem("encuesta_plantasSeleccionadas");
           localStorage.removeItem("encuesta_plantasFenologico");
           return "¡Respuestas enviadas correctamente!";
         },
@@ -647,10 +681,48 @@ const Encuesta: React.FC = () => {
         </div>
       </div>
 
-      {/* ---------- FORMULARIO DE ENCUESTA ---------- */}
+      {/* ---------- SELECCIÓN DE LOTE (GLOBAL) ---------- */}
       {formularioActual && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            Seleccione el lote a monitorear
+          </h2>
+          <div className="max-w-md">
+            <select
+              value={loteSeleccionado || ""}
+              onChange={handleLoteChange}
+              className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+              required
+            >
+              <option value="" disabled>
+                -- Seleccione un lote --
+              </option>
+              <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
+              <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
+              <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
+              <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
+              <option value="l5">Lote 5. Naranja - Oficina - 127 Plantas</option>
+              <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
+              <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
+              <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
+              <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
+              <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
+              <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
+              <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
+            </select>
+            {plantasSeleccionadas.length > 0 && (
+              <p className="text-sm text-green-600 mt-2">
+                ✅ 5 plantas generadas automáticamente para este lote.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ---------- FORMULARIO DE ENCUESTA ---------- */}
+      {formularioActual && loteSeleccionado && (
         <form onSubmit={handleSubmit} className="space-y-8 border rounded-lg shadow-md p-6 bg-white">
-          {/* ---------- TEXTO INTRODUCTORIO ---------- */}
+          {/* ... TEXTO INTRODUCTORIO (sin cambios) ... */}
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 text-gray-800 text-sm rounded-r">
             <p className="mb-2 font-medium">📋 Propósito del formulario</p>
             <p>
@@ -666,109 +738,84 @@ const Encuesta: React.FC = () => {
             </p>
           </div>
 
-          {/* ---------- CARACTERIZACIÓN PRINCIPAL ---------- */}
+          {/* ---------- CARACTERIZACIÓN PRINCIPAL (sin el campo lote) ---------- */}
           <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
               Información de Caracterización
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {formularioActual.caracterizacion_template.campos_requeridos.map((campo, index) => {
-                const campoLower = campo.toLowerCase();
-                const esCampoMonitoreo =
-                  campoLower.includes("qué") && campoLower.includes("monitorear");
-                const esCondicionesDia =
-                  campoLower.includes("condiciones") && campoLower.includes("día");
+              {formularioActual.caracterizacion_template.campos_requeridos
+                .filter((campo) => !campo.toLowerCase().includes("lote")) // NO mostrar el campo de lote
+                .map((campo, index) => {
+                  const campoLower = campo.toLowerCase();
+                  const esCampoMonitoreo =
+                    campoLower.includes("qué") && campoLower.includes("monitorear");
+                  const esCondicionesDia =
+                    campoLower.includes("condiciones") && campoLower.includes("día");
 
-                return (
-                  <div key={index} className="flex flex-col">
-                    <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide">
-                      {campo.replace(/_/g, " ")}
-                    </label>
+                  return (
+                    <div key={index} className="flex flex-col">
+                      <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide">
+                        {campo.replace(/_/g, " ")}
+                      </label>
 
-                    {esCampoMonitoreo ? (
-                      <select
-                        name={campo}
-                        value={caracterizacion[campo] || ""}
-                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      >
-                        <option value="" disabled>
-                          Seleccione una opción
-                        </option>
-                        <option value="poblacion">Censo Poblacional</option>
-                        <option value="fenologico">Monitoreo Fenológico</option>
-                        <option value="artropodos">Artrópodos</option>
-                        <option value="enfermedades">Enfermedades</option>
-                        <option value="arvenses">Arvenses</option>
-                        <option value="biologicos">Controladores Biológicos</option>
-                        <option value="polinizadores">Polinizadores</option>
-                      </select>
-                    ) : esCondicionesDia ? (
-                      <select
-                        name={campo}
-                        value={caracterizacion[campo] || ""}
-                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                      >
-                        <option value="" disabled>
-                          Seleccione una opción
-                        </option>
-                        <option value="soleado">Soleado</option>
-                        <option value="nublado">Nublado</option>
-                        <option value="lluvia">Lluvia</option>
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        name={campo}
-                        value={caracterizacion[campo] || ""}
-                        onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
-                        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
-                        required
-                      />
-                    )}
-                  </div>
-                );
-              })}
+                      {esCampoMonitoreo ? (
+                        <select
+                          name={campo}
+                          value={caracterizacion[campo] || ""}
+                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        >
+                          <option value="" disabled>
+                            Seleccione una opción
+                          </option>
+                          <option value="poblacion">Censo Poblacional</option>
+                          <option value="fenologico">Monitoreo Fenológico</option>
+                          <option value="artropodos">Artrópodos</option>
+                          <option value="enfermedades">Enfermedades</option>
+                          <option value="arvenses">Arvenses</option>
+                          <option value="biologicos">Controladores Biológicos</option>
+                          <option value="polinizadores">Polinizadores</option>
+                        </select>
+                      ) : esCondicionesDia ? (
+                        <select
+                          name={campo}
+                          value={caracterizacion[campo] || ""}
+                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        >
+                          <option value="" disabled>
+                            Seleccione una opción
+                          </option>
+                          <option value="soleado">Soleado</option>
+                          <option value="nublado">Nublado</option>
+                          <option value="lluvia">Lluvia</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          name={campo}
+                          value={caracterizacion[campo] || ""}
+                          onChange={(e) => handleCaracterizacionChange(campo, e.target.value)}
+                          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder={`Ingrese ${campo.replace(/_/g, " ")}`}
+                          required
+                        />
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
 
-          {/* ---------- SECCIÓN CENSO POBLACIONAL ---------- */}
+          {/* ---------- SECCIÓN CENSO POBLACIONAL (sin selector de lote) ---------- */}
           {valorMonitoreo === "poblacion" && (
             <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                 Censo Poblacional
               </h2>
-              <div className="mb-6 max-w-md">
-                <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide block">
-                  Lote a monitorear
-                </label>
-                <select
-                  name="lote_a_monitorear"
-                  value={caracterizacion["lote_a_monitorear"] || ""}
-                  onChange={(e) => handleCaracterizacionChange("lote_a_monitorear", e.target.value)}
-                  className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                  required
-                >
-                  <option value="" disabled>Seleccione una opción</option>
-                  <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
-                  <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
-                  <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
-                  <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
-                  <option value="l5">Lote 5. Naranja - Oficina - 127 Plantas</option>
-                  <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
-                  <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
-                  <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
-                  <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
-                  <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
-                  <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
-                  <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
-                </select>
-              </div>
-
               <h3 className="text-xl font-bold text-gray-800 mb-4 mt-8">
                 Plantas seleccionadas para monitoreo
               </h3>
@@ -776,7 +823,7 @@ const Encuesta: React.FC = () => {
                 Las siguientes 5 plantas han sido generadas automáticamente. Complete los datos para cada una.
               </p>
 
-              {plantasCenso.map((planta, idx) => {
+              {plantasSeleccionadas.map((planta, idx) => {
                 const index = idx + 1;
                 const obsKey = `censo_planta_${index}_observacion`;
                 const alturaKey = `censo_planta_${index}_altura`;
@@ -848,40 +895,12 @@ const Encuesta: React.FC = () => {
             </div>
           )}
 
-          {/* ---------- SECCIÓN MONITOREO FENOLÓGICO ---------- */}
+          {/* ---------- SECCIÓN MONITOREO FENOLÓGICO (sin selector de lote) ---------- */}
           {valorMonitoreo === "fenologico" && (
             <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
                 Monitoreo Fenológico
               </h2>
-
-              {/* Campo LOTE (único) */}
-              <div className="mb-6 max-w-md">
-                <label className="font-semibold text-gray-700 mb-2 text-sm uppercase tracking-wide block">
-                  Lote a monitorear
-                </label>
-                <select
-                  name="lote_a_monitorear"
-                  value={caracterizacion["lote_a_monitorear"] || ""}
-                  onChange={(e) => handleCaracterizacionChange("lote_a_monitorear", e.target.value)}
-                  className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                  required
-                >
-                  <option value="" disabled>Seleccione una opción</option>
-                  <option value="l1">Lote 1. Naranja - Bodega - 45 Plantas</option>
-                  <option value="l2">Lote 2. Naranja- Guadual - 108 Plantas</option>
-                  <option value="l3">Lote 3. Naranja pequeña - 124 Plantas</option>
-                  <option value="l4">Lote 4. Mandarina - Paneles - 53 Plantas</option>
-                  <option value="l5">Lote 5. Naranja - Oficina - 127 Plantas</option>
-                  <option value="l6">Lote 6. Mandarina Adulta - 114 Plantas</option>
-                  <option value="l7">Lote 7. Naranja Swingle - 114 Plantas</option>
-                  <option value="l8">Lote 8. Naranja Swingle - 164 Plantas</option>
-                  <option value="l9">Lote 9. Naranja Adulta - 216 Plantas</option>
-                  <option value="l10">Lote 10. Naranja Swingle - 216 Plantas</option>
-                  <option value="l11">Lote 11. Limón Joven - 125 Plantas</option>
-                  <option value="l12">Lote 12. Limón Adulto - 64 Plantas</option>
-                </select>
-              </div>
 
               {/* Instrucciones generales */}
               <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
@@ -902,15 +921,12 @@ const Encuesta: React.FC = () => {
                 const i = idx + 1;
                 const fase = planta.fase;
 
-                // Claves para inputs
                 const hojasKey = `fenologico_planta_${i}_total_hojas`;
                 const brotesKey = `fenologico_planta_${i}_brotes_activos`;
                 const bbchVegKey = `fenologico_planta_${i}_bbch_vegetativo`;
-
                 const totalFloresKey = `fenologico_planta_${i}_total_flores`;
                 const botonesKey = `fenologico_planta_${i}_botones_florales`;
                 const bbchFlorKey = `fenologico_planta_${i}_bbch_floracion`;
-
                 const totalFrutosKey = `fenologico_planta_${i}_total_frutos`;
                 const canicaKey = `fenologico_planta_${i}_frutos_canica`;
                 const pinponKey = `fenologico_planta_${i}_frutos_pinpon`;
@@ -924,7 +940,6 @@ const Encuesta: React.FC = () => {
                       {planta.label} (Código: {planta.codigo})
                     </h4>
 
-                    {/* SELECTOR DE FASE */}
                     <div className="mb-4 max-w-xs">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Fase fenológica
@@ -948,7 +963,6 @@ const Encuesta: React.FC = () => {
                       </select>
                     </div>
 
-                    {/* FORMULARIOS POR FASE - SOLO SI HAY UNA FASE SELECCIONADA */}
                     {fase === "vegetativa" && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                         <div className="flex flex-col">
