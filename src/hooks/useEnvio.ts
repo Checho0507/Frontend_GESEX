@@ -101,35 +101,68 @@ export const useEnvio = ({
         }
 
         if (valorMonitoreo === "artropodos") {
+          const plantasData: any[] = [];
+          for (let i = 0; i < plantasSeleccionadas.length; i++) {
+            const prefix = `artropodo_planta_${i + 1}`;
+            const clases = caracterizacion[`${prefix}_clases`] || "";
+            const clasesArray = clases ? clases.split(",") : [];
+
+            const plantaData: any = {
+              codigo: plantasSeleccionadas[i].codigo,
+              clases: clasesArray,
+            };
+
+            if (clasesArray.includes('insecto')) {
+              plantaData.insecto = {
+                tipo: caracterizacion[`${prefix}_insecto_tipo`],
+              };
+              const tipo = caracterizacion[`${prefix}_insecto_tipo`];
+              if (tipo === "compsus") {
+                plantaData.insecto.compsus_adultos = caracterizacion[`${prefix}_insecto_compsus_adultos`];
+                plantaData.insecto.compsus_dano_hojas = caracterizacion[`${prefix}_insecto_compsus_dano_hojas`];
+                plantaData.insecto.compsus_fotos = caracterizacion[`${prefix}_insecto_compsus_fotos`];
+              } else if (tipo === "diaphorina") {
+                plantaData.insecto.diaphorina_brotes = caracterizacion[`${prefix}_insecto_diaphorina_brotes`];
+                plantaData.insecto.diaphorina_estados = caracterizacion[`${prefix}_insecto_diaphorina_estados`];
+                plantaData.insecto.diaphorina_fotos = caracterizacion[`${prefix}_insecto_diaphorina_fotos`];
+              } else if (tipo === "phyllocnistis") {
+                plantaData.insecto.phyllocnistis_galerias = caracterizacion[`${prefix}_insecto_phyllocnistis_galerias`];
+                plantaData.insecto.phyllocnistis_nivel_dano = caracterizacion[`${prefix}_insecto_phyllocnistis_nivel_dano`];
+                plantaData.insecto.phyllocnistis_fotos = caracterizacion[`${prefix}_insecto_phyllocnistis_fotos`];
+              } else if (tipo === "toxoptera") {
+                plantaData.insecto.toxoptera_brotes = caracterizacion[`${prefix}_insecto_toxoptera_brotes`];
+                plantaData.insecto.toxoptera_mielecilla = caracterizacion[`${prefix}_insecto_toxoptera_mielecilla`];
+                plantaData.insecto.toxoptera_fotos = caracterizacion[`${prefix}_insecto_toxoptera_fotos`];
+              } else if (tipo === "hormiga") {
+                plantaData.insecto.hormiga_activos = caracterizacion[`${prefix}_insecto_hormiga_activos`];
+                plantaData.insecto.hormiga_numero = caracterizacion[`${prefix}_insecto_hormiga_numero`];
+                plantaData.insecto.hormiga_fotos = caracterizacion[`${prefix}_insecto_hormiga_fotos`];
+              } else if (tipo === "otro_insecto") {
+                plantaData.insecto.otro_nombre = caracterizacion[`${prefix}_insecto_otro_nombre`];
+              }
+            }
+
+            if (clasesArray.includes('aracnido')) {
+              plantaData.acaro = {
+                tipo: caracterizacion[`${prefix}_acaro_tipo`],
+              };
+              const tipo = caracterizacion[`${prefix}_acaro_tipo`];
+              if (tipo === "phyllocoptruta") {
+                plantaData.acaro.phyllocoptruta_frutos = caracterizacion[`${prefix}_acaro_phyllocoptruta_frutos`];
+                plantaData.acaro.phyllocoptruta_fotos = caracterizacion[`${prefix}_acaro_phyllocoptruta_fotos`];
+              } else if (tipo === "polyphagotarsonemus") {
+                plantaData.acaro.polyphagotarsonemus_frutos = caracterizacion[`${prefix}_acaro_polyphagotarsonemus_frutos`];
+                plantaData.acaro.polyphagotarsonemus_fotos = caracterizacion[`${prefix}_acaro_polyphagotarsonemus_fotos`];
+              } else if (tipo === "otro_acaro") {
+                plantaData.acaro.otro_nombre = caracterizacion[`${prefix}_acaro_otro_nombre`];
+              }
+            }
+
+            plantasData.push(plantaData);
+          }
+
           artropodo_datos = {
-            clase: caracterizacion["artropodo_clase"],
-            tipo_insecto: caracterizacion["artropodo_tipo_insecto"],
-            otro_insecto_nombre: caracterizacion["artropodo_otro_insecto_nombre"],
-            compsus_adultos: caracterizacion["artropodo_compsus_adultos"],
-            compsus_dano_hojas: caracterizacion["artropodo_compsus_dano_hojas"],
-            compsus_fotos: caracterizacion["artropodo_compsus_fotos"],
-            diaphorina_brotes: caracterizacion["artropodo_diaphorina_brotes"],
-            diaphorina_estados: caracterizacion["artropodo_diaphorina_estados"],
-            diaphorina_fotos: caracterizacion["artropodo_diaphorina_fotos"],
-            phyllocnistis_galerias: caracterizacion["artropodo_phyllocnistis_galerias"],
-            phyllocnistis_nivel_dano: caracterizacion["artropodo_phyllocnistis_nivel_dano"],
-            phyllocnistis_fotos: caracterizacion["artropodo_phyllocnistis_fotos"],
-            toxoptera_brotes: caracterizacion["artropodo_toxoptera_brotes"],
-            toxoptera_mielecilla: caracterizacion["artropodo_toxoptera_mielecilla"],
-            toxoptera_fotos: caracterizacion["artropodo_toxoptera_fotos"],
-            hormiga_activos: caracterizacion["artropodo_hormiga_activos"],
-            hormiga_ubicacion: caracterizacion["artropodo_hormiga_ubicacion"],
-            hormiga_fotos: caracterizacion["artropodo_hormiga_fotos"],
-            tipo_acaro: caracterizacion["artropodo_tipo_acaro"],
-            otro_acaro_nombre: caracterizacion["artropodo_otro_acaro_nombre"],
-            acaro_phyllocoptruta_frutos: caracterizacion["artropodo_phyllocoptruta_frutos"],
-            acaro_phyllocoptruta_fotos: caracterizacion["artropodo_phyllocoptruta_fotos"],
-            acaro_polyphagotarsonemus_frutos: caracterizacion["artropodo_polyphagotarsonemus_frutos"],
-            acaro_polyphagotarsonemus_fotos: caracterizacion["artropodo_polyphagotarsonemus_fotos"],
-            otro_sintomas: caracterizacion["artropodo_otro_sintomas"],
-            otro_clase: caracterizacion["artropodo_otro_clase"],
-            otro_nombre: caracterizacion["artropodo_otro_nombre"],
-            otro_fotos: caracterizacion["artropodo_otro_fotos"],
+            plantas: plantasData,
           };
         }
 

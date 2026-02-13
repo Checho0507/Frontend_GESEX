@@ -159,6 +159,7 @@ const Encuesta: React.FC = () => {
 
           {valorMonitoreo === "artropodos" && (
             <ArthropodSection
+              plantas={plantasSeleccionadas}
               caracterizacion={caracterizacion}
               onCampoChange={handleCaracterizacionChange}
             />
