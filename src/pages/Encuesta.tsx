@@ -6,12 +6,12 @@ import { useEncuestaState } from "../hooks/useEncuestaState";
 import { useValidacion } from "../hooks/useValidacion";
 import { useEnvio } from "../hooks/useEnvio";
 
-import { SelectorFormularios } from "./SelectorFormularios";
-import { SelectorLote } from "./SelectorLote";
-import { CaracterizacionForm } from "./CaracterizacionForm";
-import { CensoSection } from "./CensoSection";
-import { FenologicoSection } from "./FenologicoSection";
-import { Loading, ErrorDisplay } from "./LoadingError";
+import { SelectorFormularios } from "../components/SelectorFormularios";
+import { SelectorLote } from "../components/SelectorLote";
+import { CaracterizacionForm } from "../components/CaracterizacionForm";
+import { CensoSection } from "../components/CensoSection";
+import { FenologicoSection } from "../components/FenologicoSection";
+import { Loading, ErrorDisplay } from "../components/LoadingError";
 
 const Encuesta: React.FC = () => {
   const { formularios, error, cargando } = useFormularios();
