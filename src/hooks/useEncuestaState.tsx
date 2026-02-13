@@ -1,15 +1,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { PlantaBase, PlantaFenologico, Formulario } from "../types";
 
-// Hook para persistir estado en localStorage
+// hook usePersistedState mejorado (dentro de useEncuestaState.ts)
 function usePersistedState<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void] {
   const [state, setState] = useState<T>(() => {
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : defaultValue;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved === null) return defaultValue;
+      return JSON.parse(saved);
+    } catch (error) {
+      console.error(`Error parsing localStorage key "${key}":`, error, 'Raw value:', localStorage.getItem(key));
+      localStorage.removeItem(key); // Limpia la entrada corrupta
+      return defaultValue;
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(state));
+    try {
+      localStorage.setItem(key, JSON.stringify(state));
+    } catch (error) {
+      console.error(`Error saving to localStorage key "${key}":`, error);
+    }
   }, [key, state]);
 
   return [state, setState];
