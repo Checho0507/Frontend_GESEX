@@ -1,296 +1,258 @@
 import React from "react";
+import { PlantaBase } from "../types";
 
 interface Props {
+  plantas: PlantaBase[];
   caracterizacion: Record<string, string>;
   onCampoChange: (campo: string, valor: string) => void;
 }
 
-// Componente para subir fotos (simulado con input de texto, reemplazar por input file en producción)
-const FotosSection: React.FC<{ prefix: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ prefix, caracterizacion, onCampoChange }) => {
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Fotos tomadas en campo de síntomas o del insecto
-      </label>
-      <p className="text-xs text-gray-500 mb-2">Sube hasta 5 archivos compatibles. Tamaño máximo por archivo: 10 MB.</p>
+// Lista completa de artrópodos (insectos y ácaros)
+const ARTHROPODS = [
+  { id: 'compsus', label: 'Compsus sp. - Picudo', tipo: 'insecto' },
+  { id: 'diaphorina', label: 'Diaphorina citri - Psílido asiático', tipo: 'insecto' },
+  { id: 'phyllocnistis', label: 'Phyllocnistis sp. - Minador de la hoja', tipo: 'insecto' },
+  { id: 'toxoptera', label: 'Toxoptera citricidus - Pulgón negro', tipo: 'insecto' },
+  { id: 'hormiga', label: 'Hormiga arriera', tipo: 'insecto' },
+  { id: 'phyllocoptruta', label: 'Phyllocoptruta sp. - Ácaro blanco', tipo: 'acaro' },
+  { id: 'polyphagotarsonemus', label: 'Polyphagotarsonemus sp. - Ácaro tostador', tipo: 'acaro' },
+];
+
+// Componente reutilizable para fotos (simulado)
+const FotosSection: React.FC<{ campo: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ campo, caracterizacion, onCampoChange }) => (
+  <div className="mb-4">
+    <label className="block text-sm font-medium text-gray-700 mb-1">Fotos tomadas en campo</label>
+    <p className="text-xs text-gray-500 mb-2">Sube hasta 5 archivos (máx 10 MB c/u)</p>
+    <input
+      type="text"
+      value={caracterizacion[campo] || ""}
+      onChange={(e) => onCampoChange(campo, e.target.value)}
+      className="border rounded px-3 py-2 w-full"
+      placeholder="Ruta de la foto (simulado)"
+    />
+  </div>
+);
+
+// Campos específicos para Compsus
+const CompsusFields: React.FC<{ prefix: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ prefix, caracterizacion, onCampoChange }) => (
+  <div className="ml-4 mt-2 p-3 bg-gray-50 rounded border">
+    <h5 className="font-medium mb-2">Compsus sp. - Picudo</h5>
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Adultos encontrados *</label>
       <input
         type="text"
-        value={caracterizacion[prefix] || ""}
-        onChange={(e) => onCampoChange(prefix, e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-        placeholder="Ruta de la foto (simulado)"
+        value={caracterizacion[`${prefix}adultos`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}adultos`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
+        placeholder="Ej: 3"
       />
     </div>
-  );
-};
-
-// Subsecciones específicas para cada insecto
-const CompsusSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => (
-  <div className="mt-4 p-4 bg-white rounded-lg border">
-    <h4 className="font-semibold text-lg mb-2">Monitoreo de Compsus sp. - Picudo</h4>
-    <p className="text-sm text-gray-600 mb-4">
-      - Seleccione preferiblemente árboles de los linderos, de los bordes de carretera o los que están cerca de los centros de acopio de frutas.<br />
-      - Sacuda de forma suave las ramas de arriba hacia abajo, dándole la vuelta al árbol.<br />
-      - Observe en el suelo la presencia de adultos, registre el número de picudos por árbol y saque un promedio.
-    </p>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Adultos de Compsus sp. encontrados en cada árbol *
-      </label>
-      <p className="text-xs text-gray-500 mb-1">Indique el número de adultos encontrados por surco/árbol monitoreado</p>
-      <p className="text-xs text-gray-500 mb-2">Formato: SURCO - PLANTA - # ADULTOS (separados por coma). Ej.: 1 - 6 - 3 Adultos, 2 - 4 - 5 Adultos</p>
-      <textarea
-        value={caracterizacion["artropodo_compsus_adultos"] || ""}
-        onChange={(e) => onCampoChange("artropodo_compsus_adultos", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-        rows={3}
-        placeholder="Ej: 1 - 6 - 3 Adultos, 2 - 4 - 5 Adultos"
-        required
-      />
-    </div>
-    <div className="mb-4">
+    <div className="mb-3">
       <label className="block text-sm font-medium text-gray-700 mb-1">Daño en hojas *</label>
       <select
-        value={caracterizacion["artropodo_compsus_dano_hojas"] || ""}
-        onChange={(e) => onCampoChange("artropodo_compsus_dano_hojas", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-md"
-        required
+        value={caracterizacion[`${prefix}dano_hojas`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}dano_hojas`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
       >
-        <option value="" disabled>Seleccione</option>
+        <option value="">Seleccione</option>
         <option value="leve">Leve</option>
         <option value="medio">Medio</option>
         <option value="alto">Alto</option>
         <option value="no_dano">No se encontró daño</option>
       </select>
     </div>
-    <FotosSection prefix="artropodo_compsus_fotos" caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
+    <FotosSection campo={`${prefix}fotos`} caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
   </div>
 );
 
-const DiaphorinaSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => (
-  <div className="mt-4 p-4 bg-white rounded-lg border">
-    <h4 className="font-semibold text-lg mb-2">Monitoreo de Diaphorina citri - Psílido asiático</h4>
-    <p className="text-sm text-gray-600 mb-4">
-      - Revisar brotes nuevos, que son los preferidos por el insecto<br />
-      - En cada árbol, revisar presencia de huevos, ninfas, adultos: 4 brotes por punto cardinal (16 brotes/árbol).<br />
-      - NOTA: Si se está realizando el monitoreo en un lote que tenga o linde con plantas de la variedad Swingle deberá monitorear mínimo 2 de estos árboles; estos árboles serán adicionales a los que ya se estaban monitoreando.<br />
-      - Lotes con Swingle: 5, 6, 8 y 9
-    </p>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Brotes con presencia de Diaphorina citri encontrados en cada árbol *
-      </label>
-      <p className="text-xs text-gray-500 mb-2">Formato: SURCO - PLANTA - # BROTES CON PRESENCIA (separados por coma). Ej.: 1 - 6 - 3 Brotes con presencia, 2 - 4 - 5 Brotes con presencia</p>
-      <textarea
-        value={caracterizacion["artropodo_diaphorina_brotes"] || ""}
-        onChange={(e) => onCampoChange("artropodo_diaphorina_brotes", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-        rows={3}
-        placeholder="Ej: 1 - 6 - 3 Brotes con presencia"
-        required
+// Diaphorina
+const DiaphorinaFields: React.FC<{ prefix: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ prefix, caracterizacion, onCampoChange }) => (
+  <div className="ml-4 mt-2 p-3 bg-gray-50 rounded border">
+    <h5 className="font-medium mb-2">Diaphorina citri - Psílido asiático</h5>
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Brotes con presencia *</label>
+      <input
+        type="text"
+        value={caracterizacion[`${prefix}brotes`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}brotes`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
+        placeholder="Ej: 5"
       />
     </div>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">Estados del insecto observados *</label>
-      <div className="flex flex-wrap gap-4">
-        {["Huevo", "Ninfa", "Adulto", "No se observaron"].map((estado) => (
-          <label key={estado} className="inline-flex items-center">
-            <input
-              type="checkbox"
-              value={estado}
-              checked={caracterizacion["artropodo_diaphorina_estados"]?.includes(estado) || false}
-              onChange={(e) => {
-                const current = caracterizacion["artropodo_diaphorina_estados"] || "";
-                const values = current ? current.split(",") : [];
-                if (e.target.checked) {
-                  values.push(estado);
-                } else {
-                  const index = values.indexOf(estado);
-                  if (index > -1) values.splice(index, 1);
-                }
-                onCampoChange("artropodo_diaphorina_estados", values.join(","));
-              }}
-              className="mr-2"
-            />
-            {estado}
-          </label>
-        ))}
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Estados observados *</label>
+      <div className="flex flex-wrap gap-2">
+        {["Huevo", "Ninfa", "Adulto", "No se observaron"].map(estado => {
+          const campoEstados = `${prefix}estados`;
+          const current = caracterizacion[campoEstados] ? caracterizacion[campoEstados].split(',') : [];
+          const checked = current.includes(estado);
+          return (
+            <label key={estado} className="inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => {
+                  let newVal = [...current];
+                  if (e.target.checked) {
+                    newVal.push(estado);
+                  } else {
+                    newVal = newVal.filter(v => v !== estado);
+                  }
+                  onCampoChange(campoEstados, newVal.join(','));
+                }}
+                className="mr-1"
+              />
+              {estado}
+            </label>
+          );
+        })}
       </div>
     </div>
-    <FotosSection prefix="artropodo_diaphorina_fotos" caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
+    <FotosSection campo={`${prefix}fotos`} caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
   </div>
 );
 
-const PhyllocnistisSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => (
-  <div className="mt-4 p-4 bg-white rounded-lg border">
-    <h4 className="font-semibold text-lg mb-2">Monitoreo de Phyllocnistis sp - Minador de los cítricos</h4>
-    <p className="text-sm text-gray-600 mb-4">
-      - Revisar brotes nuevos, que son los preferidos por el insecto<br />
-      - Observar: * Galerías serpenteantes plateadas en el envés de la hoja. * Enrollamiento del borde foliar. * Presencia de larvas o pupa al final de la galería.<br />
-      - En cada árbol, revisar: 4 brotes por punto cardinal (16 brotes/árbol).
-    </p>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Árboles con presencia de galerías hechas por Phyllocnistis sp *
-      </label>
-      <p className="text-xs text-gray-500 mb-2">Formato: SURCO - PLANTA - # GALERÍAS (separados por coma). Ej.: 1 - 6 - 3 Galerías</p>
-      <textarea
-        value={caracterizacion["artropodo_phyllocnistis_galerias"] || ""}
-        onChange={(e) => onCampoChange("artropodo_phyllocnistis_galerias", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-        rows={3}
-        placeholder="Ej: 1 - 6 - 3 Galerías"
-        required
+// Phyllocnistis
+const PhyllocnistisFields: React.FC<{ prefix: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ prefix, caracterizacion, onCampoChange }) => (
+  <div className="ml-4 mt-2 p-3 bg-gray-50 rounded border">
+    <h5 className="font-medium mb-2">Phyllocnistis sp. - Minador</h5>
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Número de galerías *</label>
+      <input
+        type="text"
+        value={caracterizacion[`${prefix}galerias`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}galerias`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
+        placeholder="Ej: 4"
       />
     </div>
-    <div className="mb-4">
+    <div className="mb-3">
       <label className="block text-sm font-medium text-gray-700 mb-1">Nivel de daño *</label>
       <select
-        value={caracterizacion["artropodo_phyllocnistis_nivel_dano"] || ""}
-        onChange={(e) => onCampoChange("artropodo_phyllocnistis_nivel_dano", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-md"
-        required
+        value={caracterizacion[`${prefix}nivel_dano`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}nivel_dano`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
       >
-        <option value="" disabled>Seleccione</option>
+        <option value="">Seleccione</option>
         <option value="bajo">Bajo</option>
         <option value="medio">Medio</option>
         <option value="alto">Alto</option>
-        <option value="sin_dano">Sin daño observado</option>
+        <option value="sin_dano">Sin daño</option>
       </select>
     </div>
-    <FotosSection prefix="artropodo_phyllocnistis_fotos" caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
+    <FotosSection campo={`${prefix}fotos`} caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
   </div>
 );
 
-const ToxopteraSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => (
-  <div className="mt-4 p-4 bg-white rounded-lg border">
-    <h4 className="font-semibold text-lg mb-2">Monitoreo de Toxoptera citricidus - Pulgón negro</h4>
-    <p className="text-sm text-gray-600 mb-4">
-      - Revisar brotes nuevos, que son los preferidos por el insecto<br />
-      - En cada árbol, revisar: 4 brotes por punto cardinal (16 brotes/árbol).
-    </p>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Brotes infestados de Toxoptera citricidus por árbol *
-      </label>
-      <p className="text-xs text-gray-500 mb-2">Formato: SURCO - PLANTA - # BROTES INFESTADOS (separados por coma). Ej.: 1 - 6 - 3 Brotes infestados, 2 - 4 - 1 Brotes infestados</p>
-      <textarea
-        value={caracterizacion["artropodo_toxoptera_brotes"] || ""}
-        onChange={(e) => onCampoChange("artropodo_toxoptera_brotes", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-        rows={3}
-        placeholder="Ej: 1 - 6 - 3 Brotes infestados"
-        required
+// Toxoptera
+const ToxopteraFields: React.FC<{ prefix: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ prefix, caracterizacion, onCampoChange }) => (
+  <div className="ml-4 mt-2 p-3 bg-gray-50 rounded border">
+    <h5 className="font-medium mb-2">Toxoptera citricidus - Pulgón negro</h5>
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Brotes infestados *</label>
+      <input
+        type="text"
+        value={caracterizacion[`${prefix}brotes`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}brotes`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
+        placeholder="Ej: 3"
       />
     </div>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        En las plantas monitoreadas se observó presencia de mielecilla y fumagina. *
-      </label>
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">¿Mielecilla y fumagina? *</label>
       <select
-        value={caracterizacion["artropodo_toxoptera_mielecilla"] || ""}
-        onChange={(e) => onCampoChange("artropodo_toxoptera_mielecilla", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-md"
-        required
+        value={caracterizacion[`${prefix}mielecilla`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}mielecilla`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
       >
-        <option value="" disabled>Seleccione</option>
+        <option value="">Seleccione</option>
         <option value="si">Sí</option>
         <option value="no">No</option>
       </select>
     </div>
-    <FotosSection prefix="artropodo_toxoptera_fotos" caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
+    <FotosSection campo={`${prefix}fotos`} caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
   </div>
 );
 
-const HormigaSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => (
-  <div className="mt-4 p-4 bg-white rounded-lg border">
-    <h4 className="font-semibold text-lg mb-2">Monitoreo de Hormiga Arriera</h4>
-    <p className="text-sm text-gray-600 mb-4">
-      - Identificar: *Bocas activas de hormiguero. *Caminos o “carreteras” de corte.<br />
-      - Evaluar grado de defoliación reciente:<br />
-      Nivel 0: Sin daño, 1: &lt;10%, 2: 10–25%, 3: 25–50%, 4: &gt;50%
-    </p>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">¿Hay hormigueros activos? *</label>
+// Hormiga
+const HormigaFields: React.FC<{ prefix: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ prefix, caracterizacion, onCampoChange }) => (
+  <div className="ml-4 mt-2 p-3 bg-gray-50 rounded border">
+    <h5 className="font-medium mb-2">Hormiga arriera</h5>
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">¿Hormigueros activos? *</label>
       <select
-        value={caracterizacion["artropodo_hormiga_activos"] || ""}
-        onChange={(e) => onCampoChange("artropodo_hormiga_activos", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-md"
-        required
+        value={caracterizacion[`${prefix}activos`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}activos`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
       >
-        <option value="" disabled>Seleccione</option>
+        <option value="">Seleccione</option>
         <option value="si">Sí</option>
         <option value="no">No</option>
       </select>
     </div>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Ubicación de los hormigueros encontrados *
-      </label>
-      <p className="text-xs text-gray-500 mb-2">Formato: SURCO - PLANTA - # HORMIGUEROS (separados por coma). Ej.: 2 - 4 - 6 Hormigueros, 3 - 6 - 1 Hormiguero</p>
-      <textarea
-        value={caracterizacion["artropodo_hormiga_ubicacion"] || ""}
-        onChange={(e) => onCampoChange("artropodo_hormiga_ubicacion", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-        rows={3}
-        placeholder="Ej: 2 - 4 - 6 Hormigueros"
-        required
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación (surco - planta - # hormigueros) *</label>
+      <input
+        type="text"
+        value={caracterizacion[`${prefix}ubicacion`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}ubicacion`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
+        placeholder="Ej: 2 - 4 - 3"
       />
     </div>
-    <FotosSection prefix="artropodo_hormiga_fotos" caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
+    <FotosSection campo={`${prefix}fotos`} caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
   </div>
 );
 
-// Subsecciones para ácaros
-const PhyllocoptrutaSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => (
-  <div className="mt-4 p-4 bg-white rounded-lg border">
-    <h4 className="font-semibold text-lg mb-2">Phyllocoptruta sp. - Ácaro blanco</h4>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Número de hojas y frutos afectados *
-      </label>
-      <p className="text-xs text-gray-500 mb-2">Formato: SURCO - PLANTA - # FRUTOS AFECTADOS (separados por coma). Ej.: 4 - 6 - 2 Frutos afectados, 10 - 4 - 5 Frutos afectados</p>
-      <textarea
-        value={caracterizacion["artropodo_phyllocoptruta_frutos"] || ""}
-        onChange={(e) => onCampoChange("artropodo_phyllocoptruta_frutos", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-        rows={3}
-        placeholder="Ej: 4 - 6 - 2 Frutos afectados"
-        required
+// Phyllocoptruta (ácaro blanco)
+const PhyllocoptrutaFields: React.FC<{ prefix: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ prefix, caracterizacion, onCampoChange }) => (
+  <div className="ml-4 mt-2 p-3 bg-gray-50 rounded border">
+    <h5 className="font-medium mb-2">Phyllocoptruta sp. - Ácaro blanco</h5>
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Frutos afectados *</label>
+      <input
+        type="text"
+        value={caracterizacion[`${prefix}frutos`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}frutos`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
+        placeholder="Ej: 2"
       />
     </div>
-    <FotosSection prefix="artropodo_phyllocoptruta_fotos" caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
+    <FotosSection campo={`${prefix}fotos`} caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
   </div>
 );
 
-const PolyphagotarsonemusSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => (
-  <div className="mt-4 p-4 bg-white rounded-lg border">
-    <h4 className="font-semibold text-lg mb-2">Monitoreo de Polyphagotarsonemus sp. - Ácaro tostador</h4>
-    <p className="text-sm text-gray-600 mb-4">
-      - Revisar brotes tiernos y frutos en formación<br />
-      - En cada árbol, revisar: 4 brotes por punto cardinal (16 brotes/árbol) y 4 frutos en formación.<br />
-      - Observar: *Bronceado café oscuro *Enrollamiento de hojas jóvenes. *Rugosidad y corchosidad en frutos
-    </p>
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Número de frutos afectados *
-      </label>
-      <p className="text-xs text-gray-500 mb-2">Formato: SURCO - PLANTA - # FRUTOS AFECTADOS (separados por coma). Ej.: 4 - 6 - 2 Frutos afectados, 6 - 10 - 3 Frutos afectados</p>
-      <textarea
-        value={caracterizacion["artropodo_polyphagotarsonemus_frutos"] || ""}
-        onChange={(e) => onCampoChange("artropodo_polyphagotarsonemus_frutos", e.target.value)}
-        className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-        rows={3}
-        placeholder="Ej: 4 - 6 - 2 Frutos afectados"
-        required
+// Polyphagotarsonemus (ácaro tostador)
+const PolyphagotarsonemusFields: React.FC<{ prefix: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ prefix, caracterizacion, onCampoChange }) => (
+  <div className="ml-4 mt-2 p-3 bg-gray-50 rounded border">
+    <h5 className="font-medium mb-2">Polyphagotarsonemus sp. - Ácaro tostador</h5>
+    <div className="mb-3">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Frutos afectados *</label>
+      <input
+        type="text"
+        value={caracterizacion[`${prefix}frutos`] || ""}
+        onChange={(e) => onCampoChange(`${prefix}frutos`, e.target.value)}
+        className="border rounded px-3 py-2 w-full"
+        placeholder="Ej: 3"
       />
     </div>
-    <FotosSection prefix="artropodo_polyphagotarsonemus_fotos" caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
+    <FotosSection campo={`${prefix}fotos`} caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
   </div>
 );
 
-// Sección para "Otro artrópodo" (independiente)
-const OtroArtropodoSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => (
+// Mapa de componentes por id
+const fieldComponents: Record<string, React.FC<{ prefix: string; caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }>> = {
+  compsus: CompsusFields,
+  diaphorina: DiaphorinaFields,
+  phyllocnistis: PhyllocnistisFields,
+  toxoptera: ToxopteraFields,
+  hormiga: HormigaFields,
+  phyllocoptruta: PhyllocoptrutaFields,
+  polyphagotarsonemus: PolyphagotarsonemusFields,
+};
+
+// Sección para "Otro artrópodo" (global)
+const OtroArtropodoSection: React.FC<{ caracterizacion: Record<string, string>; onCampoChange: (campo: string, valor: string) => void }> = ({ caracterizacion, onCampoChange }) => (
   <div className="border-t pt-6 mt-6">
     <h3 className="text-xl font-bold text-gray-800 mb-4">OTRO ARTRÓPODO</h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -325,125 +287,43 @@ const OtroArtropodoSection: React.FC<Props> = ({ caracterizacion, onCampoChange 
           className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
         />
       </div>
-      <FotosSection prefix="artropodo_otro_fotos" caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
+      <FotosSection campo="artropodo_otro_fotos" caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
     </div>
   </div>
 );
 
-// Subcomponente para insectos
-const InsectoSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => {
-  const tipoInsecto = caracterizacion["artropodo_tipo_insecto"] || "";
-
-  const handleTipoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onCampoChange("artropodo_tipo_insecto", e.target.value);
-  };
-
-  return (
-    <div className="border-t pt-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-4">Insecto</h3>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Seleccione el insecto observado en campo *
-        </label>
-        <select
-          value={tipoInsecto}
-          onChange={handleTipoChange}
-          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-md"
-          required
-        >
-          <option value="" disabled>Seleccione</option>
-          <option value="compsus">Compsus sp. - Picudo</option>
-          <option value="diaphorina">Diaphorina citri - Psílido asiático</option>
-          <option value="phyllocnistis">Phyllocnistis sp. - Minador de la hoja</option>
-          <option value="toxoptera">Toxoptera citricidus - Pulgón negro</option>
-          <option value="hormiga">Hormiga arriera</option>
-          <option value="otro_insecto">Otro:</option>
-        </select>
-      </div>
-
-      {tipoInsecto === "compsus" && <CompsusSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />}
-      {tipoInsecto === "diaphorina" && <DiaphorinaSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />}
-      {tipoInsecto === "phyllocnistis" && <PhyllocnistisSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />}
-      {tipoInsecto === "toxoptera" && <ToxopteraSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />}
-      {tipoInsecto === "hormiga" && <HormigaSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />}
-      {tipoInsecto === "otro_insecto" && (
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Especifique el insecto observado
-          </label>
-          <input
-            type="text"
-            value={caracterizacion["artropodo_otro_insecto_nombre"] || ""}
-            onChange={(e) => onCampoChange("artropodo_otro_insecto_nombre", e.target.value)}
-            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-md"
-            placeholder="Nombre del insecto"
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Subcomponente para ácaros
-const AracnidoSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => {
-  const tipoAcaro = caracterizacion["artropodo_tipo_acaro"] || "";
-
-  const handleTipoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onCampoChange("artropodo_tipo_acaro", e.target.value);
-  };
-
-  return (
-    <div className="border-t pt-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-4">Ácaros</h3>
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Seleccione el ácaro que ocasionó el daño observado en campo *
-        </label>
-        <select
-          value={tipoAcaro}
-          onChange={handleTipoChange}
-          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-md"
-          required
-        >
-          <option value="" disabled>Seleccione</option>
-          <option value="phyllocoptruta">Phyllocoptruta sp. - Ácaro blanco</option>
-          <option value="polyphagotarsonemus">Polyphagotarsonemus sp. - Ácaro tostador</option>
-          <option value="otro_acaro">Otro:</option>
-        </select>
-      </div>
-
-      {tipoAcaro === "phyllocoptruta" && <PhyllocoptrutaSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />}
-      {tipoAcaro === "polyphagotarsonemus" && <PolyphagotarsonemusSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />}
-      {tipoAcaro === "otro_acaro" && (
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Especifique el ácaro observado
-          </label>
-          <input
-            type="text"
-            value={caracterizacion["artropodo_otro_acaro_nombre"] || ""}
-            onChange={(e) => onCampoChange("artropodo_otro_acaro_nombre", e.target.value)}
-            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-md"
-            placeholder="Nombre del ácaro"
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
 // Componente principal
-export const ArthropodSection: React.FC<Props> = ({ caracterizacion, onCampoChange }) => {
-  const clase = caracterizacion["artropodo_clase"] || "";
+export const ArthropodSection: React.FC<Props> = ({ plantas, caracterizacion, onCampoChange }) => {
+  // Obtiene los tipos seleccionados para una planta específica (índice 1‑based)
+  const getSelectedTypes = (idx: number): string[] => {
+    const key = `artropodo_planta_${idx}_tipos`;
+    return caracterizacion[key] ? caracterizacion[key].split(',').filter(Boolean) : [];
+  };
 
-  const handleClaseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onCampoChange("artropodo_clase", e.target.value);
+  // Maneja el cambio de checkbox para una planta y tipo
+  const handleTipoChange = (idx: number, tipoId: string, checked: boolean) => {
+    const key = `artropodo_planta_${idx}_tipos`;
+    const current = getSelectedTypes(idx);
+    let nuevos;
+    if (checked) {
+      nuevos = [...current, tipoId];
+    } else {
+      nuevos = current.filter(id => id !== tipoId);
+      // Limpiar campos de ese tipo para esta planta
+      const prefix = `artropodo_planta_${idx}_${tipoId}_`;
+      Object.keys(caracterizacion).forEach(campo => {
+        if (campo.startsWith(prefix)) {
+          onCampoChange(campo, '');
+        }
+      });
+    }
+    onCampoChange(key, nuevos.join(','));
   };
 
   return (
     <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-        Monitoreo de Artrópodos
+        Monitoreo de Artrópodos por Planta
       </h2>
 
       <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
@@ -452,24 +332,44 @@ export const ArthropodSection: React.FC<Props> = ({ caracterizacion, onCampoChan
         </p>
       </div>
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          ¿Clase de artrópodo observado? *
-        </label>
-        <select
-          value={clase}
-          onChange={handleClaseChange}
-          className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-md"
-          required
-        >
-          <option value="" disabled>Seleccione</option>
-          <option value="insecto">Insecto</option>
-          <option value="aracnido">Arácnido</option>
-        </select>
-      </div>
+      {plantas.map((planta, idx) => {
+        const index = idx + 1;
+        const selectedTypes = getSelectedTypes(index);
 
-      {clase === "insecto" && <InsectoSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />}
-      {clase === "aracnido" && <AracnidoSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />}
+        return (
+          <div key={planta.codigo} className="border rounded-lg p-4 mb-6 bg-white shadow-sm">
+            <h4 className="font-semibold text-lg text-gray-800 mb-3">
+              {planta.label} (Código: {planta.codigo})
+            </h4>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Artrópodos observados en esta planta
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {ARTHROPODS.map(art => (
+                  <label key={art.id} className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedTypes.includes(art.id)}
+                      onChange={(e) => handleTipoChange(index, art.id, e.target.checked)}
+                      className="mr-2"
+                    />
+                    {art.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {selectedTypes.map(tipoId => {
+              const Component = fieldComponents[tipoId];
+              if (!Component) return null;
+              const prefix = `artropodo_planta_${index}_${tipoId}_`;
+              return <Component key={tipoId} prefix={prefix} caracterizacion={caracterizacion} onCampoChange={onCampoChange} />;
+            })}
+          </div>
+        );
+      })}
 
       <OtroArtropodoSection caracterizacion={caracterizacion} onCampoChange={onCampoChange} />
     </div>
