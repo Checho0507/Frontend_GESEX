@@ -59,11 +59,45 @@ export interface FenologicoDatosEnvio {
   }>;
 }
 
+// ... (código existente)
+
+export interface ArtropodoDatosEnvio {
+  clase: string; // "insecto" | "aracnido"
+  tipo_insecto?: string;
+  otro_insecto_nombre?: string;
+  compsus_adultos?: string;
+  compsus_dano_hojas?: string;
+  compsus_fotos?: string;
+  diaphorina_brotes?: string;
+  diaphorina_estados?: string;
+  diaphorina_fotos?: string;
+  phyllocnistis_galerias?: string;
+  phyllocnistis_nivel_dano?: string;
+  phyllocnistis_fotos?: string;
+  toxoptera_brotes?: string;
+  toxoptera_mielecilla?: string;
+  toxoptera_fotos?: string;
+  hormiga_activos?: string;
+  hormiga_ubicacion?: string;
+  hormiga_fotos?: string;
+  tipo_acaro?: string;
+  otro_acaro_nombre?: string;
+  acaro_phyllocoptruta_frutos?: string;
+  acaro_phyllocoptruta_fotos?: string;
+  acaro_polyphagotarsonemus_frutos?: string;
+  acaro_polyphagotarsonemus_fotos?: string;
+  otro_sintomas?: string;
+  otro_clase?: string;
+  otro_nombre?: string;
+  otro_fotos?: string;
+}
+
 export interface DatosEnvio {
   test_id: string;
   caracterizacion_datos: Record<string, string>;
   censo_datos?: CensoDatosEnvio;
   fenologico_datos?: FenologicoDatosEnvio;
+  artropodo_datos?: ArtropodoDatosEnvio; // <-- NUEVO
   fecha: string;
   fingerprint: string;
 }

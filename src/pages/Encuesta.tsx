@@ -12,6 +12,8 @@ import { CaracterizacionForm } from "../components/CaracterizacionForm";
 import { CensoSection } from "../components/CensoSection";
 import { FenologicoSection } from "../components/FenologicoSection";
 import { Loading, ErrorDisplay } from "../components/LoadingError";
+// Importar el nuevo componente
+import { ArthropodSection } from "../components/ArthropodSection";
 
 const Encuesta: React.FC = () => {
   const { formularios, error, cargando } = useFormularios();
@@ -152,6 +154,13 @@ const Encuesta: React.FC = () => {
               caracterizacion={caracterizacion}
               onCampoChange={handleCaracterizacionChange}
               onFaseChange={handleFaseChange}
+            />
+          )}
+
+          {valorMonitoreo === "artropodos" && (
+            <ArthropodSection
+              caracterizacion={caracterizacion}
+              onCampoChange={handleCaracterizacionChange}
             />
           )}
 

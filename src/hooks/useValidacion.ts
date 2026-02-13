@@ -183,6 +183,82 @@ export const useValidacion = ({
         return true;
       }
 
+      // Dentro de validarCamposCondicionales, después de los casos de fenologico
+      if (seleccion === "artropodos") {
+        const clase = caracterizacion["artropodo_clase"];
+        if (!clase) {
+          toast.error("Debe seleccionar la clase de artrópodo");
+          return false;
+        }
+
+        if (clase === "insecto") {
+          const tipo = caracterizacion["artropodo_tipo_insecto"];
+          if (!tipo) {
+            toast.error("Debe seleccionar el insecto observado");
+            return false;
+          }
+
+          // Validar según el tipo de insecto
+          if (tipo === "compsus") {
+            if (!caracterizacion["artropodo_compsus_adultos"]?.trim() || !caracterizacion["artropodo_compsus_dano_hojas"]?.trim()) {
+              toast.error("Complete todos los campos de Compsus sp.");
+              return false;
+            }
+          } else if (tipo === "diaphorina") {
+            if (!caracterizacion["artropodo_diaphorina_brotes"]?.trim() || !caracterizacion["artropodo_diaphorina_estados"]?.trim()) {
+              toast.error("Complete todos los campos de Diaphorina citri");
+              return false;
+            }
+          } else if (tipo === "phyllocnistis") {
+            if (!caracterizacion["artropodo_phyllocnistis_galerias"]?.trim() || !caracterizacion["artropodo_phyllocnistis_nivel_dano"]?.trim()) {
+              toast.error("Complete todos los campos de Phyllocnistis sp.");
+              return false;
+            }
+          } else if (tipo === "toxoptera") {
+            if (!caracterizacion["artropodo_toxoptera_brotes"]?.trim() || !caracterizacion["artropodo_toxoptera_mielecilla"]?.trim()) {
+              toast.error("Complete todos los campos de Toxoptera citricidus");
+              return false;
+            }
+          } else if (tipo === "hormiga") {
+            if (!caracterizacion["artropodo_hormiga_activos"]?.trim() || !caracterizacion["artropodo_hormiga_ubicacion"]?.trim()) {
+              toast.error("Complete todos los campos de Hormiga arriera");
+              return false;
+            }
+          } else if (tipo === "otro_insecto") {
+            if (!caracterizacion["artropodo_otro_insecto_nombre"]?.trim()) {
+              toast.error("Especifique el nombre del otro insecto");
+              return false;
+            }
+          }
+        } else if (clase === "aracnido") {
+          const tipo = caracterizacion["artropodo_tipo_acaro"];
+          if (!tipo) {
+            toast.error("Debe seleccionar el ácaro observado");
+            return false;
+          }
+
+          if (tipo === "phyllocoptruta") {
+            if (!caracterizacion["artropodo_phyllocoptruta_frutos"]?.trim()) {
+              toast.error("Complete los campos de Phyllocoptruta sp.");
+              return false;
+            }
+          } else if (tipo === "polyphagotarsonemus") {
+            if (!caracterizacion["artropodo_polyphagotarsonemus_frutos"]?.trim()) {
+              toast.error("Complete los campos de Polyphagotarsonemus sp.");
+              return false;
+            }
+          } else if (tipo === "otro_acaro") {
+            if (!caracterizacion["artropodo_otro_acaro_nombre"]?.trim()) {
+              toast.error("Especifique el nombre del otro ácaro");
+              return false;
+            }
+          }
+        }
+
+        // La sección "OTRO ARTRÓPODO" es opcional, no la validamos a menos que haya datos
+        return true;
+      }
+
       return true;
     },
     [caracterizacion, nombreCampoMonitoreo, plantasSeleccionadas, plantasFenologico, loteSeleccionado]
