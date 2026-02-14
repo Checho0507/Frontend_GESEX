@@ -115,10 +115,12 @@ export const LOTES: LoteOption[] = [
   { value: "l4", label: "Lote 4. Mandarina - Paneles - 53 Plantas" },
   { value: "l5", label: "Lote 5. Naranja - Oficina - 127 Plantas" },
   { value: "l6", label: "Lote 6. Mandarina Adulta - 114 Plantas" },
-  { value: "l7", label: "Lote 7. Naranja Swingle - 114 Plantas" },
-  { value: "l8", label: "Lote 8. Naranja Swingle - 164 Plantas" },
+  { value: "l7", label: "Lote 7. Aguacate - 30 Plantas" },
+  { value: "l8", label: "Lote 8. Mandarina Joven - 164 Plantas" },
   { value: "l9", label: "Lote 9. Naranja Adulta - 216 Plantas" },
-  { value: "l10", label: "Lote 10. Naranja Swingle - 216 Plantas" },
-  { value: "l11", label: "Lote 11. Limón Joven - 125 Plantas" },
-  { value: "l12", label: "Lote 12. Limón Adulto - 64 Plantas" },
+  { value: "l10", label: "Lote 10. Limón Joven - 125 Plantas" },
+  { value: "l11", label: "Lote 11. Limón Adulto - 64 Plantas" },
+  { value: "l12", label: "Lote 12. Renovación 5 Módulos" },
+  { value: "l13", label: "Lote 13. Lote Swinglea glutinos - Cantidad de metros lineales" },
+  
 ];
