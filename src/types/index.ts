@@ -122,5 +122,4 @@ export const LOTES: LoteOption[] = [
   { value: "l11", label: "Lote 11. Limón Adulto - 64 Plantas" },
   { value: "l12", label: "Lote 12. Renovación 5 Módulos" },
   { value: "l13", label: "Lote 13. Lote Swinglea glutinos - Cantidad de metros lineales" },
-  
 ];
